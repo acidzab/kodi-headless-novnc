@@ -1,13 +1,13 @@
-# fhriley/kodi-headless-novnc
+# Kodi Headless with VNC support (fork based on fhriley/kodi-headless-novnc)
 
-[![Build Images](https://github.com/fhriley/kodi-headless-novnc/actions/workflows/actions.yml/badge.svg?branch=master)](https://github.com/fhriley/kodi-headless-novnc/actions/workflows/actions.yml)
+[![Build Images](https://github.com/acidzab/kodi-headless-novnc/actions/workflows/actions.yml/badge.svg?branch=master)](https://github.com/acidzab/kodi-headless-novnc/actions/workflows/actions.yml)
 
 A headless install of kodi in a docker container.
 Commonly used with MySQL Kodi setup to allow library updates via web interface.
 
-https://hub.docker.com/r/fhriley/kodi-headless-novnc
+https://hub.docker.com/r/smaoloni/kodi-headless-novnc
 
-https://github.com/fhriley/kodi-headless-novnc
+https://github.com/acidzab/kodi-headless-novnc
 
 This image has 2 major advantages over other headless images:
 
@@ -28,11 +28,11 @@ docker run --name=kodi-headless-novnc \
   -e KODI_DB_PASS=<MY_KODI_DBPASS> \
   -e TZ=<MY_TIMEZONE> \
   -p 5900:5900/tcp \
-  -p 8000:8000/tcp \
+  -p 8001:8001/tcp \
   -p 8080:8080/tcp \
   -p 9090:9090/tcp \
   -p 9777:9777/udp \
-  fhriley/kodi-headless-novnc:Nexus
+  smaoloni/kodi-headless-novnc:Omega
 ```
 
 Docker compose example:
@@ -42,12 +42,12 @@ version: "3"
 
 services:
   kodi:
-   image: fhriley/kodi-headless-novnc:Nexus
+   image: smaoloni/kodi-headless-novnc:Omega
    restart: always
    init: true
    ports:
      - "5900:5900/tcp"
-     - "8000:8000/tcp"
+     - "8001:8001/tcp"
      - "8080:8080/tcp"
      - "9090:9090/tcp"
      - "9777:9777/udp"
@@ -62,10 +62,10 @@ services:
 
 ### Ports
 
-| Port     | Description             |
-|----------|-------------------------|
+| Port       | Description             |
+|------------|-------------------------|
 | `5900/tcp` | VNC (Kodi GUI)        |
-| `8000/tcp` | noVNC HTTP (Kodi GUI) |
+| `8001/tcp` | noVNC HTTP (Kodi GUI) |
 | `8080/tcp` | webui                 |
 | `9090/tcp` | websockets            |
 | `9777/udp` | esall interface       |
