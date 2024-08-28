@@ -93,3 +93,62 @@ index 9946f9d998..674bb0a0d3 100644
  
    private:
      static void FillAlbumItem(const CAlbum& album,
+diff --git a/xbmc/interfaces/json-rpc/JSONServiceDescription.cpp b/xbmc/interfaces/json-rpc/JSONServiceDescription.cpp
+index 0ce49b9898..a5b918f64f 100644
+--- a/xbmc/interfaces/json-rpc/JSONServiceDescription.cpp
++++ b/xbmc/interfaces/json-rpc/JSONServiceDescription.cpp
+@@ -119,6 +119,8 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
+   { "AudioLibrary.SetArtistDetails",                CAudioLibrary::SetArtistDetails },
+   { "AudioLibrary.SetAlbumDetails",                 CAudioLibrary::SetAlbumDetails },
+   { "AudioLibrary.SetSongDetails",                  CAudioLibrary::SetSongDetails },
++  { "AudioLibrary.RefreshArtist",                   CAudioLibrary::RefreshArtist },
++  { "AudioLibrary.RefreshAlbum",                    CAudioLibrary::RefreshAlbum },
+   { "AudioLibrary.Scan",                            CAudioLibrary::Scan },
+   { "AudioLibrary.Export",                          CAudioLibrary::Export },
+   { "AudioLibrary.Clean",                           CAudioLibrary::Clean },
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index 19be352bb1..aa70a2879f 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -3063,6 +3063,34 @@
+     ],
+     "returns": "string"
+   },
++  "AudioLibrary.RefreshArtist": {
++    "type": "method",
++    "description": "Refresh the given artist in the library",
++    "transport": "Response",
++    "permission": "UpdateData",
++    "params": [
++      {
++        "name": "artistid",
++        "$ref": "Library.Id",
++        "required": true
++      }
++    ],
++    "returns": "string"
++  },
++  "AudioLibrary.RefreshAlbum": {
++    "type": "method",
++    "description": "Refresh the given album in the library",
++    "transport": "Response",
++    "permission": "UpdateData",
++    "params": [
++      {
++        "name": "albumid",
++        "$ref": "Library.Id",
++        "required": true
++      }
++    ],
++    "returns": "string"
++  },
+   "AudioLibrary.Scan": {
+     "type": "method",
+     "description": "Scans the audio sources for new library items",
+diff --git a/xbmc/interfaces/json-rpc/schema/version.txt b/xbmc/interfaces/json-rpc/schema/version.txt
+index 4727db3092..eecf12c86d 100644
+--- a/xbmc/interfaces/json-rpc/schema/version.txt
++++ b/xbmc/interfaces/json-rpc/schema/version.txt
+@@ -1 +1 @@
+-JSONRPC_VERSION 13.6.0
++JSONRPC_VERSION 13.7.0
