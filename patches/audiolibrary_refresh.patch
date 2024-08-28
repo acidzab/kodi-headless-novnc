@@ -145,10 +145,3 @@ index 19be352bb1..aa70a2879f 100644
    "AudioLibrary.Scan": {
      "type": "method",
      "description": "Scans the audio sources for new library items",
-diff --git a/xbmc/interfaces/json-rpc/schema/version.txt b/xbmc/interfaces/json-rpc/schema/version.txt
-index 4727db3092..eecf12c86d 100644
---- a/xbmc/interfaces/json-rpc/schema/version.txt
-+++ b/xbmc/interfaces/json-rpc/schema/version.txt
-@@ -1 +1 @@
--JSONRPC_VERSION 13.6.0
-+JSONRPC_VERSION 13.7.0
