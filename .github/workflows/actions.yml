@@ -29,9 +29,8 @@ jobs:
       runs_on: ubuntu-22.04
       platform: linux/amd64
       tag: amd64
-      version: ${{ github.event.inputs.version }}
-      codename: ${{ github.event.inputs.codename }}
-      tag_master: ${{ github.event.inputs.tag_master }}
+      version: ${{ github.event.inputs.tag_master == 'true' && 'master' || format('{0}', github.event.inputs.version) }}
+      codename: ${{ github.event.inputs.tag_master == 'true' && 'master' || format('{0}', github.event.inputs.codename) }}
     secrets: inherit
 
   build_arm64:
@@ -40,9 +39,8 @@ jobs:
       runs_on: ubuntu-22.04-arm
       platform: linux/arm64
       tag: arm64
-      version: ${{ github.event.inputs.version }}
-      codename: ${{ github.event.inputs.codename }}
-      tag_master: ${{ github.event.inputs.tag_master }}
+      version: ${{ github.event.inputs.tag_master == 'true' && 'master' || format('{0}', github.event.inputs.version) }}
+      codename: ${{ github.event.inputs.tag_master == 'true' && 'master' || format('{0}', github.event.inputs.codename) }}
     secrets: inherit
 
   build_arm32:
@@ -51,11 +49,10 @@ jobs:
       runs_on: ubuntu-22.04-arm
       platform: linux/arm/v7
       tag: arm32
-      version: ${{ github.event.inputs.version }}
-      codename: ${{ github.event.inputs.codename }}
+      version: ${{ github.event.inputs.tag_master == 'true' && 'master' || format('{0}', github.event.inputs.version) }}
+      codename: ${{ github.event.inputs.tag_master == 'true' && 'master' || format('{0}', github.event.inputs.codename) }}
       cflags: '-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mvectorize-with-neon-quad'
       with_cpu: '-DWITH_CPU=arm'
-      tag_master: ${{ github.event.inputs.tag_master }}
     secrets: inherit
 
   combine:
