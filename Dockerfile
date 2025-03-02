@@ -108,10 +108,10 @@ RUN cd /tmp \
  && git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git
 
 # Apply AudioLibrary Api Patch
-#COPY patches/ /patches/
-#RUN \
-# cd /tmp/xbmc && \
-# git apply --ignore-whitespace /patches/*.patch
+COPY patches/ /patches/
+RUN \
+ cd /tmp/xbmc && \
+ git apply --ignore-whitespace /patches/*.patch
 
 
 ARG CFLAGS=
