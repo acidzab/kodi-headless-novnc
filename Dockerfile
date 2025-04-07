@@ -209,6 +209,7 @@ RUN apt-get update -y \
     samba-common-bin \
     supervisor \
     tigervnc-standalone-server \
+    tigervnc-tools \
     tzdata \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && echo 'pcm.!default = null;' > /etc/asound.conf
