@@ -32,6 +32,7 @@ jobs:
       tag: amd64
       version: ${{ github.event.inputs.version }}
       codename: ${{ github.event.inputs.codename }}
+      novncport: ${{ github.event.inputs.novncport }}
     secrets: inherit
 
   build_arm64:
@@ -42,6 +43,7 @@ jobs:
       tag: arm64
       version: ${{ github.event.inputs.version }}
       codename: ${{ github.event.inputs.codename }}
+      novncport: ${{ github.event.inputs.novncport }}
     secrets: inherit
 
   build_arm32:
@@ -52,6 +54,7 @@ jobs:
       tag: arm32
       version: ${{ github.event.inputs.version }}
       codename: ${{ github.event.inputs.codename }}
+      novncport: ${{ github.event.inputs.novncport }}
       cflags: '-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mvectorize-with-neon-quad'
       with_cpu: '-DWITH_CPU=arm'
     secrets: inherit
