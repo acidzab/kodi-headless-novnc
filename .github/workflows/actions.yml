@@ -31,7 +31,7 @@ jobs:
       tag: amd64
       version: ${{ github.event.inputs.version }}
       codename: ${{ github.event.inputs.codename }}
-      mobile_version: ${{ github.event.inputs.tag_mobile }}
+      novncport: ${{ (github.event.inputs.mobile_version == 'true' && '8002') || '8001' }}
     secrets: inherit
 
   build_arm64:
@@ -42,7 +42,7 @@ jobs:
       tag: arm64
       version: ${{ github.event.inputs.version }}
       codename: ${{ github.event.inputs.codename }}
-      mobile_version: ${{ github.event.inputs.tag_mobile }}
+      novncport: ${{ (github.event.inputs.mobile_version == 'true' && '8002') || '8001' }}
     secrets: inherit
 
   build_arm32:
@@ -55,7 +55,7 @@ jobs:
       codename: ${{ github.event.inputs.codename }}
       cflags: '-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mvectorize-with-neon-quad'
       with_cpu: '-DWITH_CPU=arm'
-      mobile_version: ${{ github.event.inputs.tag_mobile }}
+      novncport: ${{ (github.event.inputs.mobile_version == 'true' && '8002') || '8001' }}
     secrets: inherit
 
   combine:
