@@ -70,7 +70,7 @@ jobs:
           platforms: ${{ inputs.platform }}
           build-args: |
               BASE_IMAGE=ubuntu:22.04
-              EASY_NOVNC_IMAGE=fhriley/easy-novnc:1.4.0
+              EASY_NOVNC_IMAGE=fhriley/easy-novnc:latest
               PYTHON_VERSION=3.10
               KODI_BRANCH=${{ inputs.version }}-${{ inputs.codename }}
               CFLAGS=${{ inputs.cflags }}
