@@ -36,10 +36,6 @@ on:
         description: '-DWITH_CPU for cmake'
         type: string
         default: ''
-      novncport:
-        description: 'NoVNC Port'
-        type: string
-        default: '8001'
 
 jobs:
   build:
@@ -76,7 +72,6 @@ jobs:
               CFLAGS=${{ inputs.cflags }}
               CXXFLAGS=${{ inputs.cflags }}
               WITH_CPU=${{ inputs.with_cpu }}
-              KODI_NOVNC_PORT=${{ inputs.novncport }}
           tags: smaoloni/kodi-headless-novnc:${{ inputs.version }}-${{ inputs.tag }}
           cache-from: type=registry,ref=smaoloni/kodi-headless-novnc:cache-${{ inputs.codename }}-${{ inputs.tag }}
           cache-to: type=registry,mode=max,ref=smaoloni/kodi-headless-novnc:cache-${{ inputs.codename }}-${{ inputs.tag }}
