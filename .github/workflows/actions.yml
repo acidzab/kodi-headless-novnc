@@ -16,8 +16,8 @@ on:
       novncport:
         description: 'The NoVNC port'
         required: true
-        type: number
-        default: 8000
+        type: string
+        default: '8000'
       tag_latest:
         description: 'Tag as latest'
         required: true
