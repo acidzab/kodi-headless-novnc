@@ -13,11 +13,10 @@ on:
         required: true
         type: string
         default: 'Omega'
-      novncport:
-        description: 'The NoVNC port'
+      tag_mobile:
+        description: 'Tag for Kodi for Android'
         required: true
-        type: string
-        default: '8000'
+        type: boolean
       tag_latest:
         description: 'Tag as latest'
         required: true
@@ -32,7 +31,7 @@ jobs:
       tag: amd64
       version: ${{ github.event.inputs.version }}
       codename: ${{ github.event.inputs.codename }}
-      novncport: ${{ github.event.inputs.novncport }}
+      mobile_version: ${{ github.event.inputs.tag_mobile }}
     secrets: inherit
 
   build_arm64:
@@ -43,7 +42,7 @@ jobs:
       tag: arm64
       version: ${{ github.event.inputs.version }}
       codename: ${{ github.event.inputs.codename }}
-      novncport: ${{ github.event.inputs.novncport }}
+      mobile_version: ${{ github.event.inputs.tag_mobile }}
     secrets: inherit
 
   build_arm32:
@@ -54,9 +53,9 @@ jobs:
       tag: arm32
       version: ${{ github.event.inputs.version }}
       codename: ${{ github.event.inputs.codename }}
-      novncport: ${{ github.event.inputs.novncport }}
       cflags: '-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mvectorize-with-neon-quad'
       with_cpu: '-DWITH_CPU=arm'
+      mobile_version: ${{ github.event.inputs.tag_mobile }}
     secrets: inherit
 
   combine:
@@ -78,6 +77,7 @@ jobs:
             smaoloni/kodi-headless-novnc:${{ github.event.inputs.version }}
             smaoloni/kodi-headless-novnc:${{ github.event.inputs.codename }}
             ${{ (github.event.inputs.tag_latest == 'true' && 'smaoloni/kodi-headless-novnc:latest') || '' }}
+            ${{ (github.event.inputs.tag_mobile == 'true' && 'smaoloni/kodi-headless-novnc:mobile') || '' }}
           sources: |
             smaoloni/kodi-headless-novnc:${{ github.event.inputs.version }}-amd64
             smaoloni/kodi-headless-novnc:${{ github.event.inputs.version }}-arm64

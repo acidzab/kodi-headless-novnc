@@ -36,11 +36,9 @@ on:
         description: '-DWITH_CPU for cmake'
         type: string
         default: ''
-      novncport:
-        description: 'The NoVNC port'
-        required: true
-        type: string
-        default: '8000'
+      mobile_version:
+        description: 'Build for mobile usage'
+        type: boolean
 
 jobs:
   build:
@@ -71,13 +69,13 @@ jobs:
           platforms: ${{ inputs.platform }}
           build-args: |
               BASE_IMAGE=ubuntu:22.04
-              EASY_NOVNC_IMAGE=fhriley/easy-novnc:1.3.0
+              EASY_NOVNC_IMAGE=fhriley/easy-novnc:1.4.0
               PYTHON_VERSION=3.10
               KODI_BRANCH=${{ inputs.version }}-${{ inputs.codename }}
               CFLAGS=${{ inputs.cflags }}
               CXXFLAGS=${{ inputs.cflags }}
               WITH_CPU=${{ inputs.with_cpu }}
-              KODI_NOVNC_PORT=${{ inputs.novncport }}
+              KODI_NOVNC_PORT=${{ (github.event.inputs.mobile_version == 'true' && '8002') || '8001' }}
           tags: smaoloni/kodi-headless-novnc:${{ inputs.version }}-${{ inputs.tag }}
           cache-from: type=registry,ref=smaoloni/kodi-headless-novnc:cache-${{ inputs.codename }}-${{ inputs.tag }}
           cache-to: type=registry,mode=max,ref=smaoloni/kodi-headless-novnc:cache-${{ inputs.codename }}-${{ inputs.tag }}
