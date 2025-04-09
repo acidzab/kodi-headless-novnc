@@ -215,8 +215,7 @@ RUN apt-get update -y \
   && echo 'pcm.!default = null;' > /etc/asound.conf
 
 COPY --from=build /tmp/kodi-build/usr/ /usr/
-#COPY --from=easy-novnc /usr/local/bin/easy-novnc /usr/local/bin/easy-novnc
-COPY --from=easy-novnc /src/easy-novnc /usr/local/bin/easy-novnc
+COPY --from=easy-novnc /usr/local/bin/easy-novnc /usr/local/bin/easy-novnc
 
 COPY supervisord.conf /etc/
 COPY advancedsettings.xml /usr/share/kodi/
