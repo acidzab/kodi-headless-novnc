@@ -252,6 +252,7 @@ ENV KODI_DB_PORT=3306
 ENV KODI_DB_USER=kodi
 ENV KODI_DB_PASS=kodi
 ENV KODI_UMASK=002
+ENV KODI_NOVNC_PORT=8000
 
 HEALTHCHECK --start-period=5s --interval=30s --retries=1 --timeout=5s \
   CMD /usr/bin/supervisorctl status all >/dev/null || exit 1

@@ -13,6 +13,11 @@ on:
         required: true
         type: string
         default: 'Omega'
+      novncport:
+        description: 'The NoVNC port'
+        required: true
+        type: number
+        default: 8000
       tag_latest:
         description: 'Tag as latest'
         required: true
