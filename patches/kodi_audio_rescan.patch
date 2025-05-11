@@ -1,0 +1,77 @@
+diff --git a/xbmc/interfaces/builtins/LibraryBuiltins.cpp b/xbmc/interfaces/builtins/LibraryBuiltins.cpp
+index b7539eea7f..104c88b96b 100644
+--- a/xbmc/interfaces/builtins/LibraryBuiltins.cpp
++++ b/xbmc/interfaces/builtins/LibraryBuiltins.cpp
+@@ -305,7 +305,9 @@ static int ExportLibrary2(const std::vector<std::string>& params)
+ /*! \brief Update a library.
+  *  \param params The parameters.
+  *  \details params[0] = "video" or "music".
+- *           params[1] = "true" to suppress dialogs (optional).
++ *           params[1] = directories to scan (optional).
++ *           params[2] = "true" to suppress dialogs (optional).
++ *           params[3] = "true" to force full music tag rescan (optional).
+  */
+ static int UpdateLibrary(const std::vector<std::string>& params)
+ {
+@@ -314,12 +316,14 @@ static int UpdateLibrary(const std::vector<std::string>& params)
+     userInitiated = StringUtils::EqualsNoCase(params[2], "true");
+   if (StringUtils::EqualsNoCase(params[0], "music"))
+   {
++    int musicScanFlag = params.size() > 3 && StringUtils::EqualsNoCase(params[3], "true")
++                            ? MUSIC_INFO::CMusicInfoScanner::SCAN_RESCAN
++                            : MUSIC_INFO::CMusicInfoScanner::SCAN_NORMAL;
+     if (CMusicLibraryQueue::GetInstance().IsScanningLibrary())
+       CMusicLibraryQueue::GetInstance().StopLibraryScanning();
+     else
+       CMusicLibraryQueue::GetInstance().ScanLibrary(params.size() > 1 ? params[1] : "",
+-                                                    MUSIC_INFO::CMusicInfoScanner::SCAN_NORMAL,
+-                                                    userInitiated);
++                                                    musicScanFlag, userInitiated);
+   }
+   else if (StringUtils::EqualsNoCase(params[0], "video"))
+   {
+@@ -394,7 +398,9 @@ static int SearchVideoLibrary(const std::vector<std::string>& params)
+ ///     ,
+ ///     Update the selected library (music or video)
+ ///     @param[in] type                  "video" or "music".
++///     @param[in] directory             Directory to scan (optional).
+ ///     @param[in] suppressDialogs       Add "true" to suppress dialogs (optional).
++///     @param[in] rescan                Add "true" to force full tag rescan (optional).
+ ///   }
+ ///   \table_row2_l{
+ ///     <b>`videolibrary.search`</b>
+diff --git a/xbmc/interfaces/json-rpc/AudioLibrary.cpp b/xbmc/interfaces/json-rpc/AudioLibrary.cpp
+index 0c2ef79da5..ff17aa277e 100644
+--- a/xbmc/interfaces/json-rpc/AudioLibrary.cpp
++++ b/xbmc/interfaces/json-rpc/AudioLibrary.cpp
+@@ -1038,8 +1038,9 @@ JSONRPC_STATUS CAudioLibrary::Scan(const std::string &method, ITransportLayer *t
+ {
+   std::string directory = parameterObject["directory"].asString();
+   std::string cmd =
+-      StringUtils::Format("updatelibrary(music, {}, {})", StringUtils::Paramify(directory),
+-                          parameterObject["showdialogs"].asBoolean() ? "true" : "false");
++      StringUtils::Format("updatelibrary(music, {}, {}, {})", StringUtils::Paramify(directory),
++                          parameterObject["showdialogs"].asBoolean() ? "true" : "false",
++                          parameterObject["rescan"].asBoolean() ? "true" : "false");
+ 
+   CServiceBroker::GetAppMessenger()->SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, cmd);
+   return ACK;
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index e0a4d0621c..2d9af64fa7 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -3107,7 +3107,13 @@
+         "type": "boolean",
+         "default": true,
+         "description": "Whether or not to show the progress bar or any other GUI dialog"
+-      }
++      },
++      {
++        "name": "rescan",
++        "type": "boolean",
++        "default": false,
++        "description": "Force full tag rescan of music files"
++      }	  
+     ],
+     "returns": "string"
+   },
