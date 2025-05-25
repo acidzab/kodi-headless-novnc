@@ -111,9 +111,7 @@ RUN cd /tmp \
 COPY patches/ /patches/
 RUN \
  cd /tmp/xbmc && \
- git apply --ignore-whitespace /patches/1audiolibrary_refresh.patch && \
- git apply --ignore-whitespace /patches/2audiolibrary_refresh_followup.patch
-
+ git apply --ignore-whitespace /patches/*.patch
 
 ARG CFLAGS=
 ARG CXXFLAGS=
