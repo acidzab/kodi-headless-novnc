@@ -1,17 +1,108 @@
+diff --git a/xbmc/interfaces/builtins/LibraryBuiltins.cpp b/xbmc/interfaces/builtins/LibraryBuiltins.cpp
+index 5cb678a3c6..04cecc716a 100644
+--- a/xbmc/interfaces/builtins/LibraryBuiltins.cpp
++++ b/xbmc/interfaces/builtins/LibraryBuiltins.cpp
+@@ -18,6 +18,7 @@
+ #include "guilib/LocalizeStrings.h"
+ #include "messaging/helpers/DialogHelper.h"
+ #include "messaging/helpers/DialogOKHelper.h"
++#include "music/MusicDbUrl.h"
+ #include "music/MusicLibraryQueue.h"
+ #include "music/infoscanner/MusicInfoScanner.h"
+ #include "settings/LibExportSettings.h"
+@@ -344,6 +345,44 @@ static int SearchVideoLibrary(const std::vector<std::string>& params)
+   return 0;
+ }
+ 
++/*! \brief Rescrapes additional information for a given artist
++ *  \params params The parameters.
++ *  \details params[0] = "artist id"
++ */
++static int RefreshArtist(const std::vector<std::string>& params)
++{
++  // Checking if the artist id is passed
++  if (params.empty())
++    return -1;
++
++  // Set the artist id on the musicdb url
++  CMusicDbUrl musicUrl;
++  if (!musicUrl.FromString("musicdb://artists/"))
++    return -1;
++  musicUrl.AddOption("artistid", params.front());
++
++  // Start rescraping additional information for the given artist
++  CMusicLibraryQueue::GetInstance().StartArtistScan(musicUrl.ToString(), true);
++  return 0;
++}
++
++/*! \brief Rescrapes additional information for a given album
++ *  \params params The parameters.
++ *  \details params[0] = "album id"
++ */
++static int RefreshAlbum(const std::vector<std::string>& params)
++{
++  // Checking if the album id is passed
++  if (params.empty())
++    return -1;
++
++  // Set the album id on the musicdb url
++  CMusicDbUrl musicUrl;
++  if (!musicUrl.FromString("musicdb://albums/"))
++    return -1;
++  musicUrl.AddOption("albumid", params.front());
++
++  // Start rescraping additional information for the given album
++  CMusicLibraryQueue::GetInstance().StartAlbumScan(musicUrl.ToString(), true);
++  return 0;
++}
++
+ // Note: For new Texts with comma add a "\" before!!! Is used for table text.
+ //
+ /// \page page_List_of_built_in_functions
+@@ -401,16 +440,31 @@ static int SearchVideoLibrary(const std::vector<std::string>& params)
+ ///     ,
+ ///     Brings up a search dialog which will search the library
+ ///   }
++///   \table_row2_l{
++///     <b>`musiclibrary.refreshartist([artistId\])`</b>
++///     ,
++///     Rescrapes additional information for a given artist
++///     @param[in] artistId             Artist Id.
++///   }
++///   \table_row2_l{
++///     <b>`musiclibrary.refreshalbum([albumId\])`</b>
++///     ,
++///     Rescrapes additional information for a given album
++///     @param[in] albumId             Album Id.
++///   }
+ ///  \table_end
+ ///
+ 
+ CBuiltins::CommandMap CLibraryBuiltins::GetOperations() const
+ {
+-  return {
+-          {"cleanlibrary",        {"Clean the video/music library", 1, CleanLibrary}},
+-          {"exportlibrary",       {"Export the video/music library", 1, ExportLibrary}},
+-          {"exportlibrary2",      {"Export the video/music library", 1, ExportLibrary2}},
+-          {"updatelibrary",       {"Update the selected library (music or video)", 1, UpdateLibrary}},
+-          {"videolibrary.search", {"Brings up a search dialog which will search the library", 0, SearchVideoLibrary}}
+-         };
++  return {{"cleanlibrary", {"Clean the video/music library", 1, CleanLibrary}},
++          {"exportlibrary", {"Export the video/music library", 1, ExportLibrary}},
++          {"exportlibrary2", {"Export the video/music library", 1, ExportLibrary2}},
++          {"updatelibrary", {"Update the selected library (music or video)", 1, UpdateLibrary}},
++          {"videolibrary.search",
++           {"Brings up a search dialog which will search the library", 0, SearchVideoLibrary}},
++          {"musiclibrary.refreshartist",
++           {"Rescrapes additional information for a given artist", 1, RefreshArtist}},
++          {"musiclibrary.refreshalbum",
++           {"Rescrapes additional information for a given album", 1, RefreshAlbum}}};
+ }
 diff --git a/xbmc/interfaces/json-rpc/AudioLibrary.cpp b/xbmc/interfaces/json-rpc/AudioLibrary.cpp
-index ab08cdf833..bed043b421 100644
+index 3d6fa79d79..0e426976c5 100644
 --- a/xbmc/interfaces/json-rpc/AudioLibrary.cpp
 +++ b/xbmc/interfaces/json-rpc/AudioLibrary.cpp
-@@ -32,6 +32,8 @@
- 
- #include <memory>
- 
-+#include <music/MusicLibraryQueue.h>
-+
- using namespace MUSIC_INFO;
- using namespace JSONRPC;
- using namespace XFILE;
-@@ -1354,6 +1356,60 @@ JSONRPC_STATUS CAudioLibrary::GetAdditionalSongDetails(const CVariant& parameter
+@@ -1353,6 +1353,55 @@ JSONRPC_STATUS CAudioLibrary::GetAdditionalSongDetails(const CVariant& parameter
    return OK;
  }
  
@@ -21,25 +112,20 @@ index ab08cdf833..bed043b421 100644
 +                                            const CVariant& parameterObject,
 +                                            CVariant& result)
 +{
-+  int artistID = (int)parameterObject["artistid"].asInteger();
-+
-+  CMusicDbUrl musicUrl;
-+  if (!musicUrl.FromString("musicdb://artists/"))
-+    return InternalError;
-+
 +  CMusicDatabase musicdatabase;
 +  if (!musicdatabase.Open())
 +    return InternalError;
 +
-+  //checking if artistID is a valid one
++  // Checking if artistID is a valid one
++  const CVariant artistIdVariant{parameterObject["artistid"]};
++  const int artistID = static_cast<int>(artistIdVariant.asInteger());
 +  if (!musicdatabase.GetArtistExists(artistID))
 +    return InvalidParams;
 +
-+  //set the artist id on the musicdb url
-+  musicUrl.AddOption("artistid", artistID);
-+
-+  //executing the StartArtistScan for refreshing the artist scraped informations
-+  CMusicLibraryQueue::GetInstance().StartArtistScan(musicUrl.ToString(), true);
++  // Start rescraping additional information for the given artist
++  const std::string cmd = StringUtils::Format("musiclibrary.refreshartist({})",
++                                              StringUtils::Paramify(artistIdVariant.asString()));
++  CServiceBroker::GetAppMessenger()->SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, cmd);
 +
 +  return ACK;
 +}
@@ -50,21 +136,21 @@ index ab08cdf833..bed043b421 100644
 +                                           const CVariant& parameterObject,
 +                                           CVariant& result)
 +{
-+  int albumID = (int)parameterObject["albumid"].asInteger();
-+
 +  CMusicDatabase musicdatabase;
 +  if (!musicdatabase.Open())
 +    return InternalError;
 +
-+  //check if albumID is a valid one
++  // Check if albumID is a valid one
 +  CAlbum album;
++  const CVariant albumIdVariant{parameterObject["albumid"]};
++  const int albumID = static_cast<int>(albumIdVariant.asInteger());
 +  if (!musicdatabase.GetAlbum(albumID, album, false))
 +    return InvalidParams;
 +
-+  std::string path = StringUtils::Format("musicdb://albums/{}/", albumID);
-+
-+  //execute the album refresh job
-+  CMusicLibraryQueue::GetInstance().StartAlbumScan(path, true);
++  // Start rescraping additional information for the given album
++  const std::string cmd = StringUtils::Format("musiclibrary.refreshalbum({})",
++                                              StringUtils::Paramify(albumIdVariant.asString()));
++  CServiceBroker::GetAppMessenger()->SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, cmd);
 +
 +  return ACK;
 +}
@@ -107,7 +193,7 @@ index 0ce49b9898..a5b918f64f 100644
    { "AudioLibrary.Export",                          CAudioLibrary::Export },
    { "AudioLibrary.Clean",                           CAudioLibrary::Clean },
 diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
-index 19be352bb1..aa70a2879f 100644
+index 19be352bb1..d01bf63e55 100644
 --- a/xbmc/interfaces/json-rpc/schema/methods.json
 +++ b/xbmc/interfaces/json-rpc/schema/methods.json
 @@ -3063,6 +3063,34 @@
@@ -116,7 +202,7 @@ index 19be352bb1..aa70a2879f 100644
    },
 +  "AudioLibrary.RefreshArtist": {
 +    "type": "method",
-+    "description": "Refresh the given artist in the library",
++    "description": "Refresh the additional information for the given artist",
 +    "transport": "Response",
 +    "permission": "UpdateData",
 +    "params": [
@@ -130,7 +216,7 @@ index 19be352bb1..aa70a2879f 100644
 +  },
 +  "AudioLibrary.RefreshAlbum": {
 +    "type": "method",
-+    "description": "Refresh the given album in the library",
++    "description": "Refresh the additional information for the given album",
 +    "transport": "Response",
 +    "permission": "UpdateData",
 +    "params": [
