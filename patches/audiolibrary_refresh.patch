@@ -1,5 +1,5 @@
 diff --git a/xbmc/interfaces/builtins/LibraryBuiltins.cpp b/xbmc/interfaces/builtins/LibraryBuiltins.cpp
-index 5cb678a3c6..04cecc716a 100644
+index 5cb678a3c6..83c264bb3e 100644
 --- a/xbmc/interfaces/builtins/LibraryBuiltins.cpp
 +++ b/xbmc/interfaces/builtins/LibraryBuiltins.cpp
 @@ -18,6 +18,7 @@
@@ -10,7 +10,7 @@ index 5cb678a3c6..04cecc716a 100644
  #include "music/MusicLibraryQueue.h"
  #include "music/infoscanner/MusicInfoScanner.h"
  #include "settings/LibExportSettings.h"
-@@ -344,6 +345,44 @@ static int SearchVideoLibrary(const std::vector<std::string>& params)
+@@ -344,6 +345,48 @@ static int SearchVideoLibrary(const std::vector<std::string>& params)
    return 0;
  }
  
@@ -59,7 +59,7 @@ index 5cb678a3c6..04cecc716a 100644
  // Note: For new Texts with comma add a "\" before!!! Is used for table text.
  //
  /// \page page_List_of_built_in_functions
-@@ -401,16 +440,31 @@ static int SearchVideoLibrary(const std::vector<std::string>& params)
+@@ -401,16 +444,31 @@ static int SearchVideoLibrary(const std::vector<std::string>& params)
  ///     ,
  ///     Brings up a search dialog which will search the library
  ///   }
