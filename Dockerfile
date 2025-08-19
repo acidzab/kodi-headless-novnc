@@ -157,7 +157,7 @@ RUN mkdir -p /tmp/xbmc/build \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
-ARG PYTHON_VERSION=3.13
+ARG PYTHON_VERSION=3.12
 
 RUN install -Dm755 \
 	/tmp/xbmc/tools/EventClients/Clients/KodiSend/kodi-send.py \
@@ -170,7 +170,7 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.13
+ARG PYTHON_VERSION=3.12
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
@@ -178,30 +178,29 @@ RUN apt-get update -y \
     ca-certificates \
     curl \
     gosu \
-    libasound2 \
+    libasound2t64 \
     libass9 \
     libbluray2 \
     libcrossguid0 \
-    libcurl4 \
-    libdav1d5 \
+    libcurl4t64 \
+    libdav1d7 \
     libegl1 \
-    libfmt8 \
+    libfmt9 \
     libfstrcmp0 \
     libgl1 \
-    libiso9660-11 \
-    libkissfft-float131 \
+    libiso9660-11t64 \
     liblzo2-2 \
-    libmicrohttpd12 \
+    libmicrohttpd12t64 \
     libmysqlclient21 \
-    libnfs13 \
+    libnfs14 \
     libpcrecpp0v5 \
-    libplist3 \
+    libplist-2.0-4 \
     libpython${PYTHON_VERSION} \
     libsmbclient \
-    libspdlog1 \
+    libspdlog1.12 \
     libtag1v5 \
     libtinyxml2.6.2v5 \
-    libtinyxml2-9 \
+    libtinyxml2-10 \
     libudf0 \
     libudfread0 \
     libxrandr2 \
