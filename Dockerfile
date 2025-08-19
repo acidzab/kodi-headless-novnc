@@ -194,13 +194,13 @@ RUN apt-get update -y \
     libnfs14 \
     libpcrecpp0v5 \
     libplist-2.0-4 \
-    libpython${PYTHON_VERSION} \
-    libsmbclient \
+    libpython${PYTHON_VERSION}t64 \
+    libsmbclient0 \
     libspdlog1.12 \
     libtag1v5 \
     libtinyxml2.6.2v5 \
     libtinyxml2-10 \
-    libudf0 \
+    libudf0t64 \
     libudfread0 \
     libxrandr2 \
     libxslt1.1 \
