@@ -33,6 +33,7 @@ RUN apt-get update -y \
     libbluray-dev \
     libbz2-dev \
     libcdio-dev \
+    libcdio++-dev \
     libcec-dev \
     libcrossguid-dev \
     libcurl4-openssl-dev \
