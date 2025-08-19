@@ -59,6 +59,7 @@ RUN apt-get update -y \
     libgnutls28-dev \
     libgpg-error-dev \
     libinput-dev \
+    libiso9660++-dev \
     libiso9660-dev \
     libjpeg-dev \
     liblirc-dev \
@@ -185,6 +186,7 @@ RUN apt-get update -y \
     libcurl4t64 \
     libdav1d7 \
     libegl1 \
+    libexiv2-27 \
     libfmt9 \
     libfstrcmp0 \
     libgl1 \
