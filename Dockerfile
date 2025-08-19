@@ -1,5 +1,5 @@
-ARG BASE_IMAGE="ubuntu:22.04"
-ARG EASY_NOVNC_IMAGE="fhriley/easy-novnc:1.3.0"
+ARG BASE_IMAGE="ubuntu:24.04"
+ARG EASY_NOVNC_IMAGE="fhriley/easy-novnc:1.6.0"
 
 FROM $EASY_NOVNC_IMAGE as easy-novnc
 FROM $BASE_IMAGE as build
@@ -15,13 +15,11 @@ RUN apt-get update -y \
     autopoint \
     autotools-dev \
     cmake \
-    cpp  \
+    cpp \
     curl \
+    debhelper \
     default-jre \
-    default-libmysqlclient-dev \
-    flatbuffers-compiler \
-    flatbuffers-compiler-dev \
-    g++  \
+    g++ \
     gawk \
     gcc  \
     gdc \
@@ -30,10 +28,12 @@ RUN apt-get update -y \
     gperf \
     libasound2-dev \
     libass-dev  \
+    libavahi-client-dev \
+    libavahi-common-dev \
     libbluray-dev \
     libbz2-dev \
-    libcdio++-dev \
     libcdio-dev \
+    libcec-dev \
     libcrossguid-dev \
     libcurl4-openssl-dev \
     libcwiid-dev \
@@ -41,6 +41,7 @@ RUN apt-get update -y \
     libdrm-dev \
     libegl1-mesa-dev \
     libenca-dev \
+    libexiv2-dev \
     libflac-dev \
     libflatbuffers-dev \
     libfmt-dev  \
@@ -57,13 +58,13 @@ RUN apt-get update -y \
     libgnutls28-dev \
     libgpg-error-dev \
     libinput-dev \
-    libiso9660++-dev \
     libiso9660-dev \
     libjpeg-dev \
-    libkissfft-dev \
+    liblirc-dev \
     libltdl-dev \
     liblzo2-dev \
     libmicrohttpd-dev \
+    libmysqlclient-dev \
     libnfs-dev \
     libogg-dev \
     libomxil-bellagio-dev \
@@ -72,6 +73,7 @@ RUN apt-get update -y \
     libplist-dev \
     libpng-dev \
     libsmbclient-dev \
+    libshairplay-dev \
     libspdlog-dev  \
     libsqlite3-dev \
     libssh-dev \
@@ -81,6 +83,7 @@ RUN apt-get update -y \
     libtinyxml-dev \
     libtinyxml2-dev \
     libtool \
+    libudev-dev \
     libunistring-dev \
     libvorbis-dev \
     libxkbcommon-dev \
@@ -91,13 +94,13 @@ RUN apt-get update -y \
     lsb-release \
     meson \
     nasm \
+    ninja-build \
+    nlohmann-json3-dev \
     python3-dev \
     python3-pil \
-    rapidjson-dev \
     swig \
     unzip \
     uuid-dev \
-    yasm \
     zip \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists
@@ -136,8 +139,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_DVDCSS=OFF \
     -DENABLE_INTERNAL_FFMPEG=ON \
     -DENABLE_INTERNAL_CROSSGUID=OFF \
-    -DENABLE_INTERNAL_KISSFFT=OFF \
-    -DENABLE_INTERNAL_RapidJSON=OFF \
+    -DENABLE_INTERNAL_NLOHMANNJSON=OFF \
     -DENABLE_EVENTCLIENTS=OFF \
     -DENABLE_GLX=ON \
     -DENABLE_LCMS2=OFF \
@@ -155,7 +157,7 @@ RUN mkdir -p /tmp/xbmc/build \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.13
 
 RUN install -Dm755 \
 	/tmp/xbmc/tools/EventClients/Clients/KodiSend/kodi-send.py \
@@ -168,7 +170,7 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.13
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
