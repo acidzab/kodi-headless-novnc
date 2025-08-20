@@ -28,13 +28,10 @@ RUN apt-get update -y \
     gperf \
     libasound2-dev \
     libass-dev  \
-    libavahi-client-dev \
-    libavahi-common-dev \
     libbluray-dev \
     libbz2-dev \
     libcdio-dev \
     libcdio++-dev \
-    libcec-dev \
     libcrossguid-dev \
     libcurl4-openssl-dev \
     libcwiid-dev \
@@ -62,7 +59,6 @@ RUN apt-get update -y \
     libiso9660++-dev \
     libiso9660-dev \
     libjpeg-dev \
-    liblirc-dev \
     libltdl-dev \
     liblzo2-dev \
     libmicrohttpd-dev \
@@ -75,7 +71,6 @@ RUN apt-get update -y \
     libplist-dev \
     libpng-dev \
     libsmbclient-dev \
-    libshairplay-dev \
     libspdlog-dev  \
     libsqlite3-dev \
     libssh-dev \
@@ -85,7 +80,6 @@ RUN apt-get update -y \
     libtinyxml-dev \
     libtinyxml2-dev \
     libtool \
-    libudev-dev \
     libunistring-dev \
     libvorbis-dev \
     libxkbcommon-dev \
@@ -103,6 +97,7 @@ RUN apt-get update -y \
     swig \
     unzip \
     uuid-dev \
+    yasm \
     zip \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists
