@@ -16,7 +16,6 @@ RUN apt-get update -y \
     autotools-dev \
     cmake \
     cpp \
-    crossguid \
     curl \
     debhelper \
     default-jre \
@@ -136,7 +135,6 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_DBUS=OFF \
     -DENABLE_DVDCSS=OFF \
     -DENABLE_INTERNAL_FFMPEG=ON \
-    -DENABLE_INTERNAL_CROSSGUID=OFF \
     -DENABLE_INTERNAL_NLOHMANNJSON=OFF \
     -DENABLE_EVENTCLIENTS=OFF \
     -DENABLE_GLX=ON \
@@ -174,7 +172,6 @@ RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     alsa-base \
     ca-certificates \
-    crossguid \
     curl \
     gosu \
     libasound2t64 \
