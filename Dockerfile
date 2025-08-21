@@ -19,6 +19,7 @@ RUN apt-get update -y \
     curl \
     debhelper \
     default-jre \
+    default-libmysqlclient-dev \
     g++ \
     gawk \
     gcc  \
@@ -62,7 +63,6 @@ RUN apt-get update -y \
     libltdl-dev \
     liblzo2-dev \
     libmicrohttpd-dev \
-    libmysqlclient-dev \
     libnfs-dev \
     libogg-dev \
     libomxil-bellagio-dev \
