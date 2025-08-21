@@ -16,6 +16,7 @@ RUN apt-get update -y \
     autotools-dev \
     cmake \
     cpp \
+    crossguid \
     curl \
     debhelper \
     default-jre \
@@ -173,6 +174,7 @@ RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     alsa-base \
     ca-certificates \
+    crossguid \
     curl \
     gosu \
     libasound2t64 \
