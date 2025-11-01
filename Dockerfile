@@ -178,6 +178,16 @@ ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_VERSION=3.13
 
 RUN apt-get update -y \
+    && apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get install -y python$PYTHON_VERSION-dev
+
+# Set PYTHON_VERSION as the default Python interpreter
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python$PYTHON_VERSION 1
+RUN update-alternatives --set python /usr/bin/python$PYTHON_VERSION
+RUN update-alternatives --set python /usr/bin/python$PYTHON_VERSION
+
+RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     alsa-base \
     ca-certificates \
