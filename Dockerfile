@@ -12,7 +12,7 @@ RUN apt-get update -y \
     && apt-get install -y software-properties-common \
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update -y \
-    && apt-get install -y python${PYTHON_BUILD_VERSION}-dev
+    && apt-get install -y python${PYTHON_BUILD_VERSION}-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Python 3.13 as default python3
