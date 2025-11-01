@@ -7,7 +7,8 @@ FROM $BASE_IMAGE as build
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_VERSION=3.13
 
-RUN apt-get install -y software-properties-common && \
+RUN apt-get update -y \
+    && apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get install -y python$PYTHON_VERSION-dev
 
