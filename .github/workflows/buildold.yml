@@ -1,6 +1,6 @@
 name: Reusable build workflow
 
-on:
+on: 
   workflow_call:
     inputs:
       runs_on:
@@ -40,42 +40,38 @@ on:
 jobs:
   build:
     runs-on: ${{ inputs.runs_on }}
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       -
         name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
+        uses: docker/setup-buildx-action@v2
+        
       -
-        name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        name: Login to DockerHub
+        uses: docker/login-action@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       -
         name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v3
         with:
           context: .
           push: true
           platforms: ${{ inputs.platform }}
           build-args: |
-            BASE_IMAGE=ubuntu:24.04
-            EASY_NOVNC_IMAGE=fhriley/easy-novnc:1.6.0
-            PYTHON_BUILD_VERSION=3.13
-            KODI_BRANCH=${{ inputs.version }}-${{ inputs.codename }}
-            CFLAGS=${{ inputs.cflags }}
-            CXXFLAGS=${{ inputs.cflags }}
-            WITH_CPU=${{ inputs.with_cpu }}
-          tags: ghcr.io/${{ github.repository }}:${{ inputs.version }}-${{ inputs.tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:cache-${{ inputs.codename }}-${{ inputs.tag }}
-          cache-to: type=registry,mode=max,ref=ghcr.io/${{ github.repository }}:cache-${{ inputs.codename }}-${{ inputs.tag }}
+              BASE_IMAGE=ubuntu:24.04
+              EASY_NOVNC_IMAGE=fhriley/easy-novnc:1.6.0
+              PYTHON_BUILD_VERSION=3.13
+              KODI_BRANCH=${{ inputs.version }}-${{ inputs.codename }}
+              CFLAGS=${{ inputs.cflags }}
+              CXXFLAGS=${{ inputs.cflags }}
+              WITH_CPU=${{ inputs.with_cpu }}
+          tags: smaoloni/kodi-headless-novnc:${{ inputs.version }}-${{ inputs.tag }}
+          cache-from: type=registry,ref=smaoloni/kodi-headless-novnc:cache-${{ inputs.codename }}-${{ inputs.tag }}
+          cache-to: type=registry,mode=max,ref=smaoloni/kodi-headless-novnc:cache-${{ inputs.codename }}-${{ inputs.tag }}
