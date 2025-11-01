@@ -7,15 +7,22 @@ FROM $BASE_IMAGE as build
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_BUILD_VERSION=3.13
 
+# Install Python 3.13 from deadsnakes PPA
 RUN apt-get update -y \
-    && apt-get install -y software-properties-common && \
-    add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get install -y python$PYTHON_BUILD_VERSION
+    && apt-get install -y software-properties-common \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update -y \
+    && apt-get install -y \
+        python${PYTHON_BUILD_VERSION} \
+        python${PYTHON_BUILD_VERSION}-dev \
+        libpython${PYTHON_BUILD_VERSION} \
+    && rm -rf /var/lib/apt/lists/*
 
+# Set Python 3.13 as default python3
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_BUILD_VERSION} 100
 
+# Install Kodi build dependencies
 RUN apt-get update -y \
-  && apt purge kodi* \
-  && apt-get update -y \
   && apt-get install -y \
     autoconf \
     automake \
@@ -99,7 +106,6 @@ RUN apt-get update -y \
     nasm \
     ninja-build \
     nlohmann-json3-dev \
-    python3-dev \
     python3-pil \
     swig \
     unzip \
@@ -107,23 +113,27 @@ RUN apt-get update -y \
     yasm \
     zip \
     zlib1g-dev \
-  && rm -rf /var/lib/apt/lists
+  && rm -rf /var/lib/apt/lists/*
+
+# Verify Python version
+RUN python3 --version
 
 ARG KODI_BRANCH="master"
 
+# Clone Kodi source
 RUN cd /tmp \
  && git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git
 
 # Apply AudioLibrary Api Patch
 COPY patches/ /patches/
-RUN \
- cd /tmp/xbmc && \
- git apply --ignore-whitespace /patches/*.patch
+RUN cd /tmp/xbmc \
+ && git apply --ignore-whitespace /patches/*.patch
 
 ARG CFLAGS=
 ARG CXXFLAGS=
 ARG WITH_CPU=
 
+# Build Kodi with Python 3.13
 RUN mkdir -p /tmp/xbmc/build \
   && cd /tmp/xbmc/build \
   && CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" cmake ../. \
@@ -151,7 +161,6 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_NFS=ON \
     -DENABLE_OPTICAL=OFF \
     -DPYTHON_VER=${PYTHON_BUILD_VERSION} \
-    -DPYTHON_DIR=/usr/local/lib/python${PYTHON_BUILD_VERSION} \
     -DENABLE_PULSEAUDIO=OFF \
     -DENABLE_SNDIO=OFF \
     -DENABLE_TESTING=OFF \
@@ -162,6 +171,7 @@ RUN mkdir -p /tmp/xbmc/build \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
+# Install kodi-send and xbmcclient
 RUN install -Dm755 \
 	/tmp/xbmc/tools/EventClients/Clients/KodiSend/kodi-send.py \
 	/tmp/kodi-build/usr/bin/kodi-send \
@@ -169,23 +179,31 @@ RUN install -Dm755 \
 	/tmp/xbmc/tools/EventClients/lib/python/xbmcclient.py \
 	/tmp/kodi-build/usr/lib/python${PYTHON_BUILD_VERSION}/xbmcclient.py
 
-
+# ============================================================================
+# Final runtime image
+# ============================================================================
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_RUN_VERSION=3.13
 
+# Install Python 3.13 from deadsnakes PPA
 RUN apt-get update -y \
-    && apt-get install -y software-properties-common && \
-    add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get install -y python$PYTHON_RUN_VERSION \
-    libpython$PYTHON_RUN_VERSION
+    && apt-get install -y software-properties-common \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update -y \
+    && apt-get install -y \
+        python${PYTHON_RUN_VERSION} \
+        libpython${PYTHON_RUN_VERSION} \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set PYTHON_BUILD_VERSION as the default Python interpreter
-RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python$PYTHON_RUN_VERSION 1
-RUN update-alternatives --set python /usr/bin/python$PYTHON_RUN_VERSION
-RUN update-alternatives --set python /usr/bin/python$PYTHON_RUN_VERSION
+# Set Python 3.13 as default python3
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_RUN_VERSION} 100
 
+# Verify Python version
+RUN python3 --version
+
+# Install runtime dependencies
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     alsa-base \
@@ -227,46 +245,38 @@ RUN apt-get update -y \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && echo 'pcm.!default = null;' > /etc/asound.conf
 
+# Copy Kodi from build stage
 COPY --from=build /tmp/kodi-build/usr/ /usr/
+
+# Copy easy-novnc
 COPY --from=easy-novnc /usr/local/bin/easy-novnc /usr/local/bin/easy-novnc
 
+# Copy configuration files
 COPY supervisord.conf /etc/
 COPY advancedsettings.xml /usr/share/kodi/
 COPY docker-entrypoint.sh /
 
-VOLUME /data
+# Create app user and group
+RUN groupadd --gid 2000 app \
+  && useradd --home-dir /data --shell /bin/bash --uid 2000 --gid 2000 app
 
-CMD ["/docker-entrypoint.sh"]
-
-# VNC
-EXPOSE 5900/tcp
-
-# HTTP (noVNC)
-EXPOSE 8001/tcp
-
-# Kodi HTTP API
-EXPOSE 8080/tcp
-
-# Websockets
-EXPOSE 9090/tcp
-
-# EventServer
-EXPOSE 9777/udp
+# Environment variables
+ENV KODI_UID=2000 \
+    KODI_GID=2000 \
+    KODI_DB_HOST=mysql \
+    KODI_DB_PORT=3306 \
+    KODI_DB_USER=kodi \
+    KODI_DB_PASS=kodi \
+    KODI_UMASK=002 \
+    KODI_NOVNC_PORT=8001
 
 VOLUME /data
 
-RUN groupadd --gid 2000 app && \
-  useradd --home-dir /data --shell /bin/bash --uid 2000 --gid 2000 app
+# Expose ports
+EXPOSE 5900/tcp 8001/tcp 8080/tcp 9090/tcp 9777/udp
 
-ENV KODI_UID=2000
-ENV KODI_GID=2000
-ENV KODI_DB_HOST=mysql
-ENV KODI_DB_PORT=3306
-ENV KODI_DB_USER=kodi
-ENV KODI_DB_PASS=kodi
-ENV KODI_UMASK=002
-ENV KODI_NOVNC_PORT=8001
-
+# Health check
 HEALTHCHECK --start-period=5s --interval=30s --retries=1 --timeout=5s \
   CMD /usr/bin/supervisorctl status all >/dev/null || exit 1
 
+CMD ["/docker-entrypoint.sh"]
