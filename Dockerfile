@@ -173,7 +173,18 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_RUN_VERSION=3.12
+ARG PYTHON_RUN_VERSION=3.13
+
+RUN apt-get update -y \
+    && apt-get install -y software-properties-common && \
+    add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get install -y python$PYTHON_RUN_VERSION \
+    libpython$PYTHON_RUN_VERSION
+
+# Set PYTHON_BUILD_VERSION as the default Python interpreter
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python$PYTHON_RUN_VERSION 1
+RUN update-alternatives --set python /usr/bin/python$PYTHON_RUN_VERSION
+RUN update-alternatives --set python /usr/bin/python$PYTHON_RUN_VERSION
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
