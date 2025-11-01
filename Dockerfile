@@ -210,7 +210,6 @@ RUN apt-get update -y \
     libnfs14 \
     libpcrecpp0v5 \
     libplist-2.0-4 \
-    libpython${PYTHON_RUN_VERSION}t64 \
     libsmbclient0 \
     libspdlog1.12 \
     libtag1v5 \
@@ -220,7 +219,6 @@ RUN apt-get update -y \
     libudfread0 \
     libxrandr2 \
     libxslt1.1 \
-    python3-minimal \
     samba-common-bin \
     supervisor \
     tigervnc-standalone-server \
