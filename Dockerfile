@@ -1,22 +1,11 @@
 ARG BASE_IMAGE="ubuntu:24.04"
 ARG EASY_NOVNC_IMAGE="fhriley/easy-novnc:1.6.0"
 
-FROM $EASY_NOVNC_IMAGE as easy-novnc
-FROM $BASE_IMAGE as build
+FROM $EASY_NOVNC_IMAGE AS easy-novnc
+FROM $BASE_IMAGE AS build
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_BUILD_VERSION=3.13
-
-# Install Python 3.13 from deadsnakes PPA
-RUN apt-get update -y \
-    && apt-get install -y software-properties-common \
-    && add-apt-repository -y ppa:deadsnakes/ppa \
-    && apt-get update -y \
-    && apt-get install -y python${PYTHON_BUILD_VERSION}-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set Python 3.13 as default python3
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_BUILD_VERSION} 100
+ARG PYTHON_VERSION=3.12
 
 # Install Kodi build dependencies
 RUN apt-get update -y \
@@ -103,6 +92,8 @@ RUN apt-get update -y \
     nasm \
     ninja-build \
     nlohmann-json3-dev \
+    python3-dev \
+    python3-pil \
     swig \
     unzip \
     uuid-dev \
@@ -156,7 +147,6 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_LIRCCLIENT=OFF \
     -DENABLE_NFS=ON \
     -DENABLE_OPTICAL=OFF \
-    -DPYTHON_VER=${PYTHON_BUILD_VERSION} \
     -DENABLE_PULSEAUDIO=OFF \
     -DENABLE_SNDIO=OFF \
     -DENABLE_TESTING=OFF \
@@ -173,7 +163,7 @@ RUN install -Dm755 \
 	/tmp/kodi-build/usr/bin/kodi-send \
  && install -Dm644 \
 	/tmp/xbmc/tools/EventClients/lib/python/xbmcclient.py \
-	/tmp/kodi-build/usr/lib/python${PYTHON_BUILD_VERSION}/xbmcclient.py
+	/tmp/kodi-build/usr/lib/python${PYTHON_VERSION}/xbmcclient.py
 
 # ============================================================================
 # Final runtime image
@@ -181,24 +171,7 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_RUN_VERSION=3.13
-
-# Install Python 3.13 from deadsnakes PPA
-RUN apt-get update -y \
-    && apt-get install -y software-properties-common \
-    && add-apt-repository -y ppa:deadsnakes/ppa \
-    && apt-get update -y \
-    && apt-get install -y \
-        python${PYTHON_RUN_VERSION} \
-        python${PYTHON_RUN_VERSION}-venv \
-        libpython${PYTHON_RUN_VERSION} \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set Python 3.13 as default python3
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_RUN_VERSION} 100
-
-# Verify Python version
-RUN python3 --version
+ARG PYTHON_VERSION=3.12
 
 # Install runtime dependencies
 RUN apt-get update -y \
@@ -225,6 +198,7 @@ RUN apt-get update -y \
     libnfs14 \
     libpcrecpp0v5 \
     libplist-2.0-4 \
+    libpython${PYTHON_VERSION}t64 \
     libsmbclient0 \
     libspdlog1.12 \
     libtag1v5 \
@@ -234,6 +208,7 @@ RUN apt-get update -y \
     libudfread0 \
     libxrandr2 \
     libxslt1.1 \
+    python3-minimal \
     samba-common-bin \
     supervisor \
     tigervnc-standalone-server \
