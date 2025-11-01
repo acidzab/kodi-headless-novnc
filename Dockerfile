@@ -5,17 +5,17 @@ FROM $EASY_NOVNC_IMAGE as easy-novnc
 FROM $BASE_IMAGE as build
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.13
+ARG PYTHON_BUILD_VERSION=3.13
 
 RUN apt-get update -y \
     && apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get install -y python$PYTHON_VERSION-dev
+    apt-get install -y python$PYTHON_BUILD_VERSION-dev
 
-# Set PYTHON_VERSION as the default Python interpreter
-RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python$PYTHON_VERSION 1
-RUN update-alternatives --set python /usr/bin/python$PYTHON_VERSION
-RUN update-alternatives --set python /usr/bin/python$PYTHON_VERSION
+# Set PYTHON_BUILD_VERSION as the default Python interpreter
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python$PYTHON_BUILD_VERSION 1
+RUN update-alternatives --set python /usr/bin/python$PYTHON_BUILD_VERSION
+RUN update-alternatives --set python /usr/bin/python$PYTHON_BUILD_VERSION
 
 RUN apt-get update -y \
   && apt purge kodi* \
@@ -167,13 +167,13 @@ RUN install -Dm755 \
 	/tmp/kodi-build/usr/bin/kodi-send \
  && install -Dm644 \
 	/tmp/xbmc/tools/EventClients/lib/python/xbmcclient.py \
-	/tmp/kodi-build/usr/lib/python${PYTHON_VERSION}/xbmcclient.py
+	/tmp/kodi-build/usr/lib/python${PYTHON_BUILD_VERSION}/xbmcclient.py
 
 
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_RUN_VERSION=3.12
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
@@ -199,7 +199,7 @@ RUN apt-get update -y \
     libnfs14 \
     libpcrecpp0v5 \
     libplist-2.0-4 \
-    libpython${PYTHON_VERSION}t64 \
+    libpython${PYTHON_RUN_VERSION}t64 \
     libsmbclient0 \
     libspdlog1.12 \
     libtag1v5 \
