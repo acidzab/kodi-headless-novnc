@@ -10,12 +10,8 @@ ARG PYTHON_BUILD_VERSION=3.13
 RUN apt-get update -y \
     && apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get install -y python$PYTHON_BUILD_VERSION-dev
+    apt-get install -y python$PYTHON_BUILD_VERSION
 
-# Set PYTHON_BUILD_VERSION as the default Python interpreter
-RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python$PYTHON_BUILD_VERSION 1
-RUN update-alternatives --set python /usr/bin/python$PYTHON_BUILD_VERSION
-RUN update-alternatives --set python /usr/bin/python$PYTHON_BUILD_VERSION
 
 RUN apt-get update -y \
   && apt purge kodi* \
@@ -103,6 +99,8 @@ RUN apt-get update -y \
     nasm \
     ninja-build \
     nlohmann-json3-dev \
+    python3-dev \
+    python3-pil \
     swig \
     unzip \
     uuid-dev \
@@ -152,6 +150,8 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_LIRCCLIENT=OFF \
     -DENABLE_NFS=ON \
     -DENABLE_OPTICAL=OFF \
+    -DPYTHON_VER=${PYTHON_BUILD_VERSION} \
+    -DPYTHON_DIR=/usr/local/lib/python${PYTHON_BUILD_VERSION} \
     -DENABLE_PULSEAUDIO=OFF \
     -DENABLE_SNDIO=OFF \
     -DENABLE_TESTING=OFF \
