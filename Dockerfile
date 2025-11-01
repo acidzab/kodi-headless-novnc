@@ -106,7 +106,6 @@ RUN apt-get update -y \
     nasm \
     ninja-build \
     nlohmann-json3-dev \
-    python3-pil \
     swig \
     unzip \
     uuid-dev \
