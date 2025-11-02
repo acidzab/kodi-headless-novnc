@@ -1,11 +1,11 @@
-ARG BASE_IMAGE="ubuntu:24.04"
+ARG BASE_IMAGE="ubuntu:24.10"
 ARG EASY_NOVNC_IMAGE="fhriley/easy-novnc:1.6.0"
 
 FROM $EASY_NOVNC_IMAGE AS easy-novnc
 FROM $BASE_IMAGE AS build
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.13
 
 # Install Kodi build dependencies
 RUN apt-get update -y \
@@ -120,7 +120,7 @@ ARG CFLAGS=
 ARG CXXFLAGS=
 ARG WITH_CPU=
 
-# Build Kodi with Python 3.13
+# Build Kodi
 RUN mkdir -p /tmp/xbmc/build \
   && cd /tmp/xbmc/build \
   && CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" cmake ../. \
@@ -171,7 +171,7 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.13
 
 # Install runtime dependencies
 RUN apt-get update -y \
