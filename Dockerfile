@@ -8,7 +8,7 @@ ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_VERSION=3.12
 
 # Install Kodi build dependencies
-RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get install -y software-properties-common && add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update -y \
   && apt-get install -y \
     autoconf \
