@@ -8,6 +8,7 @@ ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_VERSION=3.12
 
 # Install Kodi build dependencies
+RUN add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update -y \
   && apt-get install -y \
     autoconf \
@@ -92,8 +93,7 @@ RUN apt-get update -y \
     nasm \
     ninja-build \
     nlohmann-json3-dev \
-    python3-dev \
-    python3-pil \
+    python${PYTHON_VERSION}-dev \
     swig \
     unzip \
     uuid-dev \
@@ -101,9 +101,6 @@ RUN apt-get update -y \
     zip \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
-
-# Verify Python version
-RUN python3 --version
 
 ARG KODI_BRANCH="master"
 
@@ -148,6 +145,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_NFS=ON \
     -DENABLE_OPTICAL=OFF \
     -DENABLE_PULSEAUDIO=OFF \
+    -DPYTHON_VER=${PYTHON_VERSION} \
     -DENABLE_SNDIO=OFF \
     -DENABLE_TESTING=OFF \
     -DENABLE_UDEV=OFF \
@@ -171,7 +169,7 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_RUN_VERSION=3.12
 
 # Install runtime dependencies
 RUN apt-get update -y \
@@ -198,7 +196,7 @@ RUN apt-get update -y \
     libnfs14 \
     libpcrecpp0v5 \
     libplist-2.0-4 \
-    libpython${PYTHON_VERSION}t64 \
+    libpython${PYTHON_RUN_VERSION}t64 \
     libsmbclient0 \
     libspdlog1.12 \
     libtag1v5 \
