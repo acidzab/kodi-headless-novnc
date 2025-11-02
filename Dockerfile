@@ -11,6 +11,7 @@ ARG PYTHON_VERSION=3.12
 RUN apt-get update -y \
     && apt-get install --no-install-recommends -y software-properties-common \
     && add-apt-repository ppa:deadsnakes/ppa
+
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     autoconf \
@@ -171,9 +172,13 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_RUN_VERSION=3.12
+ARG PYTHON_VERSION=3.12
 
 # Install runtime dependencies
+RUN apt-get update -y \
+    && apt-get install --no-install-recommends -y software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa
+
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     alsa-base \
@@ -198,7 +203,7 @@ RUN apt-get update -y \
     libnfs14 \
     libpcrecpp0v5 \
     libplist-2.0-4 \
-    libpython${PYTHON_RUN_VERSION}t64 \
+    libpython${PYTHON_VERSION} \
     libsmbclient0 \
     libspdlog1.12 \
     libtag1v5 \
@@ -208,7 +213,7 @@ RUN apt-get update -y \
     libudfread0 \
     libxrandr2 \
     libxslt1.1 \
-    python3-minimal \
+    python${PYTHON_VERSION} \
     samba-common-bin \
     supervisor \
     tigervnc-standalone-server \
@@ -216,6 +221,10 @@ RUN apt-get update -y \
     tzdata \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && echo 'pcm.!default = null;' > /etc/asound.conf
+
+# Set PYTHON_VERSION as the default Python interpreter
+RUN update-alternatives --install /usr/bin/python3 python /usr/bin/python$PYTHON_VERSION 1
+RUN update-alternatives --set python /usr/bin/python$PYTHON_VERSION
 
 # Copy Kodi from build stage
 COPY --from=build /tmp/kodi-build/usr/ /usr/
