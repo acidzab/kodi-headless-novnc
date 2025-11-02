@@ -5,8 +5,6 @@
 A headless install of kodi in a docker container.
 Commonly used with MySQL Kodi setup to allow library updates via web interface.
 
-https://hub.docker.com/r/smaoloni/kodi-headless-novnc
-
 https://github.com/acidzab/kodi-headless-novnc
 
 This image has 2 major advantages over other headless images:
@@ -32,7 +30,7 @@ docker run --name=kodi-headless-novnc \
   -p 8080:8080/tcp \
   -p 9090:9090/tcp \
   -p 9777:9777/udp \
-  smaoloni/kodi-headless-novnc:Omega
+  ghcr.io/acidzab/kodi-headless-novnc:latest
 ```
 
 Docker compose example:
@@ -42,7 +40,7 @@ version: "3"
 
 services:
   kodi:
-   image: smaoloni/kodi-headless-novnc:Omega
+   image: ghcr.io/acidzab/kodi-headless-novnc:latest
    restart: always
    init: true
    ports:
@@ -93,11 +91,8 @@ services:
 
 | Tag      | Codename | Architecture         |
 |----------|----------|----------------------|
-| `latest` | Omega    | amd64, armv7, arm64  |
+| `latest` | Piers    | amd64, armv7, arm64  |
 | `Piers`  | Piers    | amd64, armv7, arm64  |
-| `Omega`  | Omega    | amd64, armv7, arm64  |
-| `Nexus`  | Nexus    | amd64, armv7, arm64  |
-| `Matrix` | Matrix   | amd64, armv7, arm64  |
 
 It is **strongly** recommended that you use the codename tag rather than `latest`. Docker will automatically pull the correct architecture for your platform.
 
