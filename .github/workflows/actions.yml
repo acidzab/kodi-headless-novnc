@@ -7,7 +7,7 @@ on:
         description: 'The Kodi version'
         required: true
         type: string
-        default: '22.0a2'
+        default: '22.0a3'
       codename:
         description: 'The Kodi codename'
         required: true
