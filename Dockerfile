@@ -112,10 +112,12 @@ RUN cd /tmp \
     --prefix=/opt/python${PYTHON_VERSION} \
     --enable-shared \
     --with-ensurepip=install \
-    --enable-optimizations \
+    --without-static-libpython \
     LDFLAGS="-Wl,-rpath=/opt/python${PYTHON_VERSION}/lib" \
   && make -j$(nproc) \
   && make install \
+  && strip --strip-unneeded /opt/python${PYTHON_VERSION}/lib/libpython${PYTHON_VERSION}.so.1.0 \
+  && strip --strip-unneeded /opt/python${PYTHON_VERSION}/bin/python${PYTHON_VERSION} \
   && rm -rf /tmp/Python-${PYTHON_FULL_VERSION}*
 
 ARG KODI_BRANCH="master"
