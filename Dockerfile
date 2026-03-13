@@ -5,7 +5,8 @@ FROM $EASY_NOVNC_IMAGE AS easy-novnc
 FROM $BASE_IMAGE AS build
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
+ARG PYTHON_FULL_VERSION=3.14.3
 
 # Install Kodi build dependencies
 RUN apt-get update -y \
@@ -102,6 +103,21 @@ RUN apt-get update -y \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
+# Build Python from source
+RUN cd /tmp \
+  && curl -O https://www.python.org/ftp/python/${PYTHON_FULL_VERSION}/Python-${PYTHON_FULL_VERSION}.tgz \
+  && tar xf Python-${PYTHON_FULL_VERSION}.tgz \
+  && cd Python-${PYTHON_FULL_VERSION} \
+  && ./configure \
+    --prefix=/opt/python${PYTHON_VERSION} \
+    --enable-shared \
+    --with-ensurepip=install \
+    --enable-optimizations \
+    LDFLAGS="-Wl,-rpath=/opt/python${PYTHON_VERSION}/lib" \
+  && make -j$(nproc) \
+  && make install \
+  && rm -rf /tmp/Python-${PYTHON_FULL_VERSION}*
+
 ARG KODI_BRANCH="master"
 
 # Clone Kodi source
@@ -151,6 +167,9 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_UPNP=ON \
     -DENABLE_VAAPI=OFF \
     -DENABLE_VDPAU=OFF \
+    -DPYTHON_PATH=/opt/python${PYTHON_VERSION} \
+    -DPYTHON_VER=${PYTHON_VERSION} \
+    -DPYTHON_INTERPRETER_PATH=/opt/python${PYTHON_VERSION}/bin/python3 \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
@@ -168,7 +187,7 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
 
 # Install runtime dependencies
 RUN apt-get update -y \
@@ -195,7 +214,6 @@ RUN apt-get update -y \
     libnfs14 \
     libpcrecpp0v5 \
     libplist-2.0-4 \
-    libpython${PYTHON_VERSION}t64 \
     libsmbclient0 \
     libspdlog1.12 \
     libtag1v5 \
@@ -205,7 +223,6 @@ RUN apt-get update -y \
     libudfread0 \
     libxrandr2 \
     libxslt1.1 \
-    python3-minimal \
     samba-common-bin \
     supervisor \
     tigervnc-standalone-server \
@@ -213,6 +230,9 @@ RUN apt-get update -y \
     tzdata \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && echo 'pcm.!default = null;' > /etc/asound.conf
+
+# Copy Python from build stage
+COPY --from=build /opt/python${PYTHON_VERSION} /opt/python${PYTHON_VERSION}
 
 # Copy Kodi from build stage
 COPY --from=build /tmp/kodi-build/usr/ /usr/
@@ -237,7 +257,8 @@ ENV KODI_UID=2000 \
     KODI_DB_USER=kodi \
     KODI_DB_PASS=kodi \
     KODI_UMASK=002 \
-    KODI_NOVNC_PORT=8001
+    KODI_NOVNC_PORT=8001 \
+    LD_LIBRARY_PATH=/opt/python${PYTHON_VERSION}/lib:$LD_LIBRARY_PATH
 
 VOLUME /data
 
