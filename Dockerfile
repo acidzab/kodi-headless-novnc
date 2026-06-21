@@ -6,7 +6,7 @@ FROM $BASE_IMAGE AS build
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_VERSION=3.14
-ARG PYTHON_FULL_VERSION=3.14.3
+ARG PYTHON_FULL_VERSION=3.14.6
 
 # Install Kodi build dependencies
 RUN apt-get update -y \
