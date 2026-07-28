@@ -1,4 +1,4 @@
-ARG BASE_IMAGE="ubuntu:24.04"
+ARG BASE_IMAGE="ubuntu:26.04"
 ARG EASY_NOVNC_IMAGE="fhriley/easy-novnc:1.6.0"
 
 FROM $EASY_NOVNC_IMAGE AS easy-novnc
@@ -6,7 +6,7 @@ FROM $BASE_IMAGE AS build
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_VERSION=3.14
-ARG PYTHON_FULL_VERSION=3.14.6
+#ARG PYTHON_FULL_VERSION=3.14.6
 
 # Install Kodi build dependencies
 RUN apt-get update -y \
@@ -66,9 +66,7 @@ RUN apt-get update -y \
     libmicrohttpd-dev \
     libnfs-dev \
     libogg-dev \
-    libomxil-bellagio-dev \
     libp8-platform-dev \
-    libpcre3-dev \
     libplist-dev \
     libpng-dev \
     libsmbclient-dev \
@@ -104,21 +102,21 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Build Python from source
-RUN cd /tmp \
-  && curl -O https://www.python.org/ftp/python/${PYTHON_FULL_VERSION}/Python-${PYTHON_FULL_VERSION}.tgz \
-  && tar xf Python-${PYTHON_FULL_VERSION}.tgz \
-  && cd Python-${PYTHON_FULL_VERSION} \
-  && ./configure \
-    --prefix=/opt/python${PYTHON_VERSION} \
-    --enable-shared \
-    --with-ensurepip=install \
-    --without-static-libpython \
-    LDFLAGS="-Wl,-rpath=/opt/python${PYTHON_VERSION}/lib" \
-  && make -j$(nproc) \
-  && make install \
-  && strip --strip-unneeded /opt/python${PYTHON_VERSION}/lib/libpython${PYTHON_VERSION}.so.1.0 \
-  && strip --strip-unneeded /opt/python${PYTHON_VERSION}/bin/python${PYTHON_VERSION} \
-  && rm -rf /tmp/Python-${PYTHON_FULL_VERSION}*
+#RUN cd /tmp \
+#  && curl -O https://www.python.org/ftp/python/${PYTHON_FULL_VERSION}/Python-${PYTHON_FULL_VERSION}.tgz \
+#  && tar xf Python-${PYTHON_FULL_VERSION}.tgz \
+#  && cd Python-${PYTHON_FULL_VERSION} \
+#  && ./configure \
+#    --prefix=/opt/python${PYTHON_VERSION} \
+#    --enable-shared \
+#    --with-ensurepip=install \
+#    --without-static-libpython \
+#    LDFLAGS="-Wl,-rpath=/opt/python${PYTHON_VERSION}/lib" \
+#  && make -j$(nproc) \
+#  && make install \
+#  && strip --strip-unneeded /opt/python${PYTHON_VERSION}/lib/libpython${PYTHON_VERSION}.so.1.0 \
+#  && strip --strip-unneeded /opt/python${PYTHON_VERSION}/bin/python${PYTHON_VERSION} \
+#  && rm -rf /tmp/Python-${PYTHON_FULL_VERSION}*
 
 ARG KODI_BRANCH="master"
 
@@ -169,9 +167,9 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_UPNP=ON \
     -DENABLE_VAAPI=OFF \
     -DENABLE_VDPAU=OFF \
-    -DPYTHON_PATH=/opt/python${PYTHON_VERSION} \
-    -DPYTHON_VER=${PYTHON_VERSION} \
-    -DPYTHON_INTERPRETER_PATH=/opt/python${PYTHON_VERSION}/bin/python3 \
+#    -DPYTHON_PATH=/opt/python${PYTHON_VERSION} \
+#    -DPYTHON_VER=${PYTHON_VERSION} \
+#    -DPYTHON_INTERPRETER_PATH=/opt/python${PYTHON_VERSION}/bin/python3 \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
@@ -200,31 +198,32 @@ RUN apt-get update -y \
     gosu \
     libasound2t64 \
     libass9 \
-    libbluray2 \
+    libbluray3 \
     libcrossguid0 \
     libcurl4t64 \
     libdav1d7 \
     libegl1 \
-    libexiv2-27 \
-    libfmt9 \
+    libexiv2-28 \
+    libfmt10 \
     libfstrcmp0 \
     libgl1 \
-    libiso9660-11t64 \
+    libiso9660-12 \
     liblzo2-2 \
     libmicrohttpd12t64 \
-    libmysqlclient21 \
+    libmysqlclient24 \
     libnfs14 \
-    libpcrecpp0v5 \
     libplist-2.0-4 \
+    libpython${PYTHON_VERSION} \
     libsmbclient0 \
-    libspdlog1.12 \
-    libtag1v5 \
+    libspdlog1.15 \
+    libtag2 \
     libtinyxml2.6.2v5 \
-    libtinyxml2-10 \
+    libtinyxml2-11 \
     libudf0t64 \
-    libudfread0 \
+    libudfread3 \
     libxrandr2 \
     libxslt1.1 \
+    python3-minimal \
     samba-common-bin \
     supervisor \
     tigervnc-standalone-server \
@@ -234,7 +233,7 @@ RUN apt-get update -y \
   && echo 'pcm.!default = null;' > /etc/asound.conf
 
 # Copy Python from build stage
-COPY --from=build /opt/python${PYTHON_VERSION} /opt/python${PYTHON_VERSION}
+#COPY --from=build /opt/python${PYTHON_VERSION} /opt/python${PYTHON_VERSION}
 
 # Copy Kodi from build stage
 COPY --from=build /tmp/kodi-build/usr/ /usr/
@@ -261,8 +260,8 @@ ENV KODI_UID=2000 \
     KODI_UMASK=002 \
     KODI_NOVNC_PORT=8001 \
     MALLOC_ARENA_MAX=1 \
-    MALLOC_MMAP_THRESHOLD_=8192 \
-    LD_LIBRARY_PATH=/opt/python${PYTHON_VERSION}/lib:$LD_LIBRARY_PATH
+    MALLOC_MMAP_THRESHOLD_=8192
+#    LD_LIBRARY_PATH=/opt/python${PYTHON_VERSION}/lib:$LD_LIBRARY_PATH
 
 VOLUME /data
 

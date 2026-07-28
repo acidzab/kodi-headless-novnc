@@ -3,7 +3,7 @@ import argparse
 import subprocess
 import shlex
 
-BASE_IMAGE = 'ubuntu:24.04'
+BASE_IMAGE = 'ubuntu:26.04'
 EASY_NOVNC_IMAGE = 'fhriley/easy-novnc:1.6.0'
 IMAGE_NAME = 'fhriley/kodi-headless-novnc'
 PLATFORMS = ['linux/amd64', 'linux/arm64', 'linux/arm/v7']

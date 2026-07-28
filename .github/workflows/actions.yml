@@ -26,7 +26,7 @@ jobs:
   build_amd64:
     uses: ./.github/workflows/build.yml
     with:
-      runs_on: ubuntu-24.04
+      runs_on: ubuntu-26.04
       platform: linux/amd64
       tag: amd64
       version: ${{ github.event.inputs.version }}
@@ -36,7 +36,7 @@ jobs:
   build_arm64:
     uses: ./.github/workflows/build.yml
     with:
-      runs_on: ubuntu-24.04-arm
+      runs_on: ubuntu-26.04-arm
       platform: linux/arm64
       tag: arm64
       version: ${{ github.event.inputs.version }}
@@ -46,7 +46,7 @@ jobs:
   build_arm32:
     uses: ./.github/workflows/build.yml
     with:
-      runs_on: ubuntu-24.04-arm
+      runs_on: ubuntu-26.04-arm
       platform: linux/arm/v7
       tag: arm32
       version: ${{ github.event.inputs.version }}
@@ -57,7 +57,7 @@ jobs:
 
   combine:
     needs: [build_amd64, build_arm64, build_arm32]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       packages: write
@@ -85,7 +85,7 @@ jobs:
 
   test:
     needs: [combine]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       packages: read
