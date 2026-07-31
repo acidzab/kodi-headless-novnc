@@ -165,7 +165,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_SNDIO=OFF \
     -DENABLE_TESTING=OFF \
     -DENABLE_UDEV=OFF \
-    -DENABLE_UPNP=ON \
+    -DENABLE_UPNP=OFF \
     -DENABLE_VAAPI=OFF \
     -DENABLE_VDPAU=OFF \
 #    -DPYTHON_PATH=/opt/python${PYTHON_VERSION} \
