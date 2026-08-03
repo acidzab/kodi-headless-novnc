@@ -30,7 +30,6 @@ RUN apt-get update -y \
     gperf \
     libasound2-dev \
     libass-dev  \
-    libbluray-dev \
     libbz2-dev \
     libcdio-dev \
     libcdio++-dev \
@@ -198,7 +197,6 @@ RUN apt-get update -y \
     gosu \
     libasound2t64 \
     libass9 \
-    libbluray3 \
     libcrossguid0 \
     libcurl4t64 \
     libdav1d7 \
