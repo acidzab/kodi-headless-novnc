@@ -73,7 +73,6 @@ RUN apt-get update -y \
     libsqlite3-dev \
     libssh-dev \
     libssl-dev \
-    libtag1-dev \
     libtiff5-dev \
     libtinyxml-dev \
     libtinyxml2-dev \
@@ -214,7 +213,6 @@ RUN apt-get update -y \
     libpython${PYTHON_VERSION} \
     libsmbclient0 \
     libspdlog1.15 \
-    libtag2 \
     libtinyxml2.6.2v5 \
     libtinyxml2-11 \
     libudf0t64 \
