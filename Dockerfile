@@ -20,7 +20,6 @@ RUN apt-get update -y \
     curl \
     debhelper \
     default-jre \
-    default-libmysqlclient-dev \
     g++ \
     gawk \
     gcc  \
@@ -151,6 +150,9 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_DVDCSS=OFF \
     -DENABLE_INTERNAL_FFMPEG=ON \
     -DENABLE_INTERNAL_TAGLIB=ON \
+    -DENABLE_INTERNAL_MARIADBCLIENT=ON \
+    -DENABLE_MARIADBCLIENT=ON \
+    -DENABLE_MYSQLCLIENT=OFF \
     -DENABLE_EVENTCLIENTS=OFF \
     -DENABLE_GLX=ON \
     -DENABLE_LCMS2=OFF \
@@ -207,7 +209,6 @@ RUN apt-get update -y \
     libiso9660-12 \
     liblzo2-2 \
     libmicrohttpd12t64 \
-    libmysqlclient24 \
     libnfs14 \
     libplist-2.0-4 \
     libpython${PYTHON_VERSION} \
