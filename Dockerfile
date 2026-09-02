@@ -1,12 +1,13 @@
 ARG BASE_IMAGE="ubuntu:26.04"
 ARG EASY_NOVNC_IMAGE="fhriley/easy-novnc:1.6.0"
+ARG PYTHON_IMAGE="python:3.14-slim-bookworm"
 
 FROM $EASY_NOVNC_IMAGE AS easy-novnc
+FROM $PYTHON_IMAGE AS python-base
 FROM $BASE_IMAGE AS build
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG PYTHON_VERSION=3.14
-#ARG PYTHON_FULL_VERSION=3.14.6
 
 # Install Kodi build dependencies
 RUN apt-get update -y \
@@ -88,8 +89,6 @@ RUN apt-get update -y \
     nasm \
     ninja-build \
     nlohmann-json3-dev \
-    python3-dev \
-    python3-pil \
     swig \
     unzip \
     uuid-dev \
@@ -98,22 +97,11 @@ RUN apt-get update -y \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
-# Build Python from source
-#RUN cd /tmp \
-#  && curl -O https://www.python.org/ftp/python/${PYTHON_FULL_VERSION}/Python-${PYTHON_FULL_VERSION}.tgz \
-#  && tar xf Python-${PYTHON_FULL_VERSION}.tgz \
-#  && cd Python-${PYTHON_FULL_VERSION} \
-#  && ./configure \
-#    --prefix=/opt/python${PYTHON_VERSION} \
-#    --enable-shared \
-#    --with-ensurepip=install \
-#    --without-static-libpython \
-#    LDFLAGS="-Wl,-rpath=/opt/python${PYTHON_VERSION}/lib" \
-#  && make -j$(nproc) \
-#  && make install \
-#  && strip --strip-unneeded /opt/python${PYTHON_VERSION}/lib/libpython${PYTHON_VERSION}.so.1.0 \
-#  && strip --strip-unneeded /opt/python${PYTHON_VERSION}/bin/python${PYTHON_VERSION} \
-#  && rm -rf /tmp/Python-${PYTHON_FULL_VERSION}*
+# Bring in Python from the official python image instead of the distro's
+# python3-dev, so there is no apt-installed system Python to collide with.
+COPY --from=python-base /usr/local/ /usr/local/
+RUN ldconfig \
+ && /usr/local/bin/pip3 install --no-cache-dir Pillow
 
 ARG KODI_BRANCH="master"
 
@@ -167,9 +155,9 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_UPNP=OFF \
     -DENABLE_VAAPI=OFF \
     -DENABLE_VDPAU=OFF \
-#    -DPYTHON_PATH=/opt/python${PYTHON_VERSION} \
-#    -DPYTHON_VER=${PYTHON_VERSION} \
-#    -DPYTHON_INTERPRETER_PATH=/opt/python${PYTHON_VERSION}/bin/python3 \
+    -DPYTHON_PATH=/usr/local \
+    -DPYTHON_VER=${PYTHON_VERSION} \
+    -DPYTHON_INTERPRETER_PATH=/usr/local/bin \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
@@ -211,7 +199,6 @@ RUN apt-get update -y \
     libmicrohttpd12t64 \
     libnfs14 \
     libplist-2.0-4 \
-    libpython${PYTHON_VERSION} \
     libsmbclient0 \
     libspdlog1.15 \
     libtinyxml2.6.2v5 \
@@ -220,7 +207,6 @@ RUN apt-get update -y \
     libudfread3 \
     libxrandr2 \
     libxslt1.1 \
-    python3-minimal \
     samba-common-bin \
     supervisor \
     tigervnc-standalone-server \
@@ -229,8 +215,10 @@ RUN apt-get update -y \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && echo 'pcm.!default = null;' > /etc/asound.conf
 
-# Copy Python from build stage
-#COPY --from=build /opt/python${PYTHON_VERSION} /opt/python${PYTHON_VERSION}
+# Copy Python from the official python image (runtime shared lib + stdlib,
+# no apt python3-minimal/libpython involved)
+COPY --from=python-base /usr/local/ /usr/local/
+RUN ldconfig
 
 # Copy Kodi from build stage
 COPY --from=build /tmp/kodi-build/usr/ /usr/
@@ -258,7 +246,6 @@ ENV KODI_UID=2000 \
     KODI_NOVNC_PORT=8001 \
     MALLOC_ARENA_MAX=1 \
     MALLOC_MMAP_THRESHOLD_=8192
-#    LD_LIBRARY_PATH=/opt/python${PYTHON_VERSION}/lib:$LD_LIBRARY_PATH
 
 VOLUME /data
 
