@@ -1,6 +1,6 @@
 ARG BASE_IMAGE="ubuntu:26.04"
 ARG EASY_NOVNC_IMAGE="fhriley/easy-novnc:1.6.0"
-ARG PYTHON_IMAGE="python:3.14-slim-bookworm"
+ARG PYTHON_IMAGE="python:3.14.7-slim"
 
 FROM $EASY_NOVNC_IMAGE AS easy-novnc
 FROM $PYTHON_IMAGE AS python-base
