@@ -16,6 +16,7 @@ RUN apt-get update -y \
     automake \
     autopoint \
     autotools-dev \
+    bison \
     cmake \
     cpp \
     curl \
