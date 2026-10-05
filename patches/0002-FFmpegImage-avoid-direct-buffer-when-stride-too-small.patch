@@ -1,0 +1,19 @@
+diff --git a/xbmc/guilib/FFmpegImage.cpp b/xbmc/guilib/FFmpegImage.cpp
+index 1a6ad6f..1959fb8 100644
+--- a/xbmc/guilib/FFmpegImage.cpp
++++ b/xbmc/guilib/FFmpegImage.cpp
+@@ -484,7 +484,13 @@ bool CFFmpegImage::DecodeFrame(AVFrame* frame, unsigned int width, unsigned int
+   if (!aligned)
+     CLog::Log(LOGDEBUG, "Alignment of external buffer is not suitable for ffmpeg intrinsics - please fix your malloc");
+ 
+-  if (aligned && size == pixelsSize && (int)pitch == pictureRGB->linesize[0])
++  // the x86 yuv420 to rgb32 conversion rounds the width up to 8 pixels, so the stride must
++  // cover that, otherwise the last columns are not written (see below for the temp buffer)
++  const bool strideCoversSwscaleWidth =
++      pictureRGB->linesize[0] >= static_cast<int>(((width + 7) & ~7U) * 4);
++
++  if (aligned && size == pixelsSize && (int)pitch == pictureRGB->linesize[0] &&
++      strideCoversSwscaleWidth)
+   {
+     // We can use the pixels buffer directly
+     pictureRGB->data[0] = pixels;
