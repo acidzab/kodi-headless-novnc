@@ -1,0 +1,29 @@
+From 2b910fec303225ef5c24e7e561047c4418cbf37f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Markus=20H=C3=A4rer?= <markus.haerer@gmx.net>
+Date: Wed, 30 Sep 2026 03:01:33 +0200
+Subject: [PATCH] [guilib] FFmpegImage: let av_frame_get_buffer align the temp
+ stride
+
+av_image_fill_arrays() leaves an unaligned linesize (width * 4) in
+pictureRGB, and av_frame_get_buffer() keeps a preset linesize instead
+of aligning it. The x86 yuv420 to rgb32 conversion rounds the width up
+to 8 pixels and processes 8 pixels less when that exceeds the stride,
+so for widths that are not a multiple of 8 the last columns were never
+written and uninitialised memory ended up in cached thumbnails.
+---
+ xbmc/guilib/FFmpegImage.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/xbmc/guilib/FFmpegImage.cpp b/xbmc/guilib/FFmpegImage.cpp
+index 81076b911e16b..1a6ad6fb82a07 100644
+--- a/xbmc/guilib/FFmpegImage.cpp
++++ b/xbmc/guilib/FFmpegImage.cpp
+@@ -495,6 +495,8 @@ bool CFFmpegImage::DecodeFrame(AVFrame* frame, unsigned int width, unsigned int
+     pictureRGB->format = AV_PIX_FMT_RGB32;
+     pictureRGB->width = width;
+     pictureRGB->height = height;
++    // let av_frame_get_buffer choose an aligned stride instead of the one from av_image_fill_arrays
++    std::ranges::fill(pictureRGB->linesize, 0);
+     // we copy the data manually later so give a chance to intrinsics (e.g. mmx, neon)
+     if (av_frame_get_buffer(pictureRGB, 32) < 0)
+     {
