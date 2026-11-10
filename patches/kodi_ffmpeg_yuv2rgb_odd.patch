@@ -1,5 +1,27 @@
+From dea0b86d80489a839e81e10af830202869265fce Mon Sep 17 00:00:00 2001
+From: Dom Cobley <popcornmix@gmail.com>
+Date: Tue, 10 Nov 2026 15:55:10 +0000
+Subject: [PATCH] [depends][ffmpeg] Write the last pixel of odd width yuv2rgb
+ rows
+
+libswscale's C YUV420P/YUV422P/YUVA420P to RGB converters fill each row
+in blocks of 8, 4 and 2 pixels, so with an odd output width the last
+column is never written. On ARM, where the NEON versions only take
+widths divisible by 16, this shows up as a line of random pixels on the
+right edge of odd width posters.
+
+Carry the fix submitted upstream until it lands in an FFmpeg release:
+https://code.ffmpeg.org/FFmpeg/FFmpeg/pulls/25723
+---
+ cmake/modules/FindFFMPEG.cmake                |   3 +
+ ...ffmpeg-all-swscale-yuv2rgb-odd-width.patch | 221 ++++++++++++++++++
+ tools/depends/target/ffmpeg/CMakeLists.txt    |   1 +
+ tools/depends/target/ffmpeg/Makefile          |   5 +-
+ 4 files changed, 228 insertions(+), 2 deletions(-)
+ create mode 100644 tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
+
 diff --git a/cmake/modules/FindFFMPEG.cmake b/cmake/modules/FindFFMPEG.cmake
-index 2ef6a53..3f6d060 100644
+index 2ef6a53a126e9..e1d8c701cac95 100644
 --- a/cmake/modules/FindFFMPEG.cmake
 +++ b/cmake/modules/FindFFMPEG.cmake
 @@ -222,6 +222,9 @@ macro(buildFFMPEG)
@@ -7,44 +29,19 @@ index 2ef6a53..3f6d060 100644
                        ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch
                        <SOURCE_DIR>
 +                      COMMAND ${CMAKE_COMMAND} -E copy
-+                      ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/009-ffmpeg-swscale-yuv2rgb-odd-width.patch
++                      ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
 +                      <SOURCE_DIR>
      )
  
      if(NOT DISABLE_FFMPEG_SOURCE_PLUGINS)
-diff --git a/tools/depends/target/ffmpeg/009-ffmpeg-swscale-yuv2rgb-odd-width.patch b/tools/depends/target/ffmpeg/009-ffmpeg-swscale-yuv2rgb-odd-width.patch
+diff --git a/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch b/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
 new file mode 100644
-index 0000000..97a5c28
+index 0000000000000..6cb28b6be0344
 --- /dev/null
-+++ b/tools/depends/target/ffmpeg/009-ffmpeg-swscale-yuv2rgb-odd-width.patch
-@@ -0,0 +1,249 @@
-+From 367730b58000cf4eb4b702f4f0bd33eafa8a8280 Mon Sep 17 00:00:00 2001
-+From: Dom Cobley <popcornmix@gmail.com>
-+Date: Tue, 3 Nov 2026 16:53:22 +0000
-+Subject: [PATCH] swscale/yuv2rgb: write the last pixel of odd width rows
-+
-+The C YUV420P/YUV422P/YUVA420P to RGB converters process each row in
-+blocks of 8, 4 and 2 pixels, so for an odd output width the final
-+pixel of every row was never written and kept whatever was in the
-+destination buffer.
-+
-+The unscaled path selection only rejects odd heights, and the ARM and
-+AArch64 NEON versions require widths divisible by 16, so on those
-+platforms odd widths always reach this code. x86 SSSE3 rounds the row
-+up to 8 pixels and so is unaffected when the destination stride has
-+room for that.
-+
-+Add a single pixel stage after the 2 pixel stage. The dithered formats
-+use the dither matrix column of the final pixel, and packed RGB4/BGR4
-+put it in the high nibble, which is the first pixel of the byte.
-+
-+Signed-off-by: Dom Cobley <popcornmix@gmail.com>
-+---
-+ libswscale/yuv2rgb.c | 99 ++++++++++++++++++++++++++++++++++++++++++++
-+ 1 file changed, 99 insertions(+)
-+
++++ b/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
+@@ -0,0 +1,221 @@
 +diff --git a/libswscale/yuv2rgb.c b/libswscale/yuv2rgb.c
-+index a430a11..042cc1c 100644
++index a430a110db7..042cc1cc58f 100644
 +--- a/libswscale/yuv2rgb.c
 ++++ b/libswscale/yuv2rgb.c
 +@@ -78,6 +78,10 @@ const int *sws_getCoefficients(int colorspace)
@@ -264,18 +261,38 @@ index 0000000..97a5c28
 + YUV2RGBFUNC(yuv2rgb_c_1_ordered_dither, uint8_t, 0, 0, 1)
 +     const uint8_t *d128 = ff_dither_8x8_220[yd & 7];
 +     char out_1 = 0, out_2 = 0;
-+-- 
-+2.43.0
-+
 diff --git a/tools/depends/target/ffmpeg/CMakeLists.txt b/tools/depends/target/ffmpeg/CMakeLists.txt
-index 44f92e7..e3811db 100644
+index 44f92e795ba9f..32dcfb1e6dfe3 100644
 --- a/tools/depends/target/ffmpeg/CMakeLists.txt
 +++ b/tools/depends/target/ffmpeg/CMakeLists.txt
 @@ -165,6 +165,7 @@ else()
    set(sourceplugin_patch PATCH_COMMAND patch -p1 -i <SOURCE_DIR>/002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch)
  endif()
  list(APPEND sourceplugin_patch COMMAND patch -p1 -i <SOURCE_DIR>/008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch)
-+list(APPEND sourceplugin_patch COMMAND patch -p1 -i <SOURCE_DIR>/009-ffmpeg-swscale-yuv2rgb-odd-width.patch)
++list(APPEND sourceplugin_patch COMMAND patch -p1 -i <SOURCE_DIR>/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch)
  
  include(ExternalProject)
  externalproject_add(ffmpeg
+diff --git a/tools/depends/target/ffmpeg/Makefile b/tools/depends/target/ffmpeg/Makefile
+index 53da6f9457451..b7180cd8c903c 100644
+--- a/tools/depends/target/ffmpeg/Makefile
++++ b/tools/depends/target/ffmpeg/Makefile
+@@ -4,7 +4,8 @@ DEPS = FFMPEG-VERSION Makefile ../../download-files.include \
+                       CMakeLists.txt \
+                       001-ffmpeg-all-libpostproc-plugin.patch \
+                       002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch \
+-                      008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch
++                      008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch \
++                      009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
+ 
+ BUILD_TYPE = Release
+ ifeq ($(DEBUG_BUILD),yes)
+@@ -47,7 +48,7 @@ all: .installed-$(PLATFORM)
+ 	rm -rf $(PLATFORM); mkdir -p $(PLATFORM)/build
+ 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
+ 	cd $(PLATFORM); cp ../CMakeLists.txt ./
+-	cd $(PLATFORM); cp ../001-ffmpeg-all-libpostproc-plugin.patch ../002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch ../008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch ./
++	cd $(PLATFORM); cp ../001-ffmpeg-all-libpostproc-plugin.patch ../002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch ../008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch ../009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch ./
+ 	cd $(PLATFORM)/build; $(CMAKE) $(CMAKE_ARGS) ..
+ 	touch $@
+ 
