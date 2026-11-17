@@ -42,8 +42,6 @@ RUN apt-get update -y \
     pkg-config \
     tar \
     xz-utils \
-    libsqlite3-dev \
-    libssl-dev \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
@@ -107,17 +105,6 @@ RUN P=$(ls -d ${DEPENDS_PREFIX}/*-release) \
  && rm -rf ${L}/test ${L}/idlelib ${L}/turtledemo ${L}/tkinter ${L}/ensurepip \
  && (${N}/bin/python3 -O -m compileall -q ${L} || true) \
  && cp -a ${L} /out/pylib
-
-# TEMPORARY (remove once the Kodi link is stable): link a tiny program against
-# the collected static libpython with the same library list Kodi's link uses, so
-# a missing symbol shows up here in a couple of minutes instead of after the
-# full Kodi compile. Must stay in sync with CMAKE_CXX_STANDARD_LIBRARIES below.
-RUN printf '#include <Python.h>\nint main(void){Py_Initialize();return Py_FinalizeEx();}\n' > /tmp/t.c \
- && gcc /tmp/t.c -o /tmp/t -I/out/include/python${PYTHON_VERSION} \
-      /out/lib/libpython${PYTHON_VERSION}.a \
-      /out/lib/libexpat.a /out/lib/libffi.a /out/lib/liblzma.a /out/lib/libbz2.a /out/lib/libintl.a \
-      -lssl -lcrypto -lsqlite3 -lz -ldl -lpthread -lutil -lrt -lm \
- && echo "libpython static link check: OK"
 
 FROM $BASE_IMAGE AS build
 
