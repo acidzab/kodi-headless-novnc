@@ -157,6 +157,7 @@ RUN apt-get update -y \
     libiso9660++-dev \
     libiso9660-dev \
     libjpeg-dev \
+    liblzo2-dev \
     libltdl-dev \
     libogg-dev \
     libp8-platform-dev \
@@ -184,7 +185,6 @@ RUN apt-get update -y \
     ninja-build \
     patch \
     pkg-config \
-    swig \
     unzip \
     uuid-dev \
     yasm \
@@ -230,6 +230,16 @@ ARG WITH_CPU=
 # FindPython.cmake outside a depends build, so they are appended to the end of
 # the link line through CMAKE_CXX_STANDARD_LIBRARIES (static archives must come
 # after libpython.a).
+# Build notes:
+# - liblzo2-dev (and libpng/libgif/libjpeg): Kodi's internal TexturePacker is a
+#   *host* tool configured by its own sub-project, which does not see the
+#   internal lzo2 and needs the system one.
+# - MAKEFLAGS ACLOCAL/AUTOMAKE/AUTOCONF/AUTOHEADER=: the libmicrohttpd tarball
+#   is extracted with mtimes that make automake think it must regenerate
+#   aclocal.m4; its Makefile then asks for aclocal-1.17 while Ubuntu 26.04 ships
+#   1.18. The shipped autotools output is consistent, so regeneration is
+#   disabled (variable overrides in MAKEFLAGS reach the sub-makes of every
+#   ExternalProject).
 RUN mkdir -p /tmp/xbmc/build \
   && cd /tmp/xbmc/build \
   && CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" cmake ../. \
@@ -270,7 +280,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DPYTHON_VER=${PYTHON_VERSION} \
     -DPython3_USE_STATIC_LIBS=ON \
     -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a -lssl -lcrypto -lsqlite3 -lz -ldl -lpthread -lutil -lrt -lm" \
- && make -j $(nproc) \
+ && MAKEFLAGS="ACLOCAL=: AUTOMAKE=: AUTOCONF=: AUTOHEADER=:" make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
 # Install kodi-send and xbmcclient
