@@ -238,8 +238,9 @@ ARG WITH_CPU=
 #   is extracted with mtimes that make automake think it must regenerate
 #   aclocal.m4; its Makefile then asks for aclocal-1.17 while Ubuntu 26.04 ships
 #   1.18. The shipped autotools output is consistent, so regeneration is
-#   disabled (variable overrides in MAKEFLAGS reach the sub-makes of every
-#   ExternalProject).
+#   disabled. It is applied ONLY to the build-libmicrohttpd target: MAKEFLAGS
+#   leaks into the environment, and libass runs a real autoreconf that breaks
+#   if AUTOCONF/ACLOCAL are ":".
 RUN mkdir -p /tmp/xbmc/build \
   && cd /tmp/xbmc/build \
   && CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" cmake ../. \
@@ -280,7 +281,8 @@ RUN mkdir -p /tmp/xbmc/build \
     -DPYTHON_VER=${PYTHON_VERSION} \
     -DPython3_USE_STATIC_LIBS=ON \
     -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a -lssl -lcrypto -lsqlite3 -lz -ldl -lpthread -lutil -lrt -lm" \
- && MAKEFLAGS="ACLOCAL=: AUTOMAKE=: AUTOCONF=: AUTOHEADER=:" make -j $(nproc) \
+ && MAKEFLAGS="ACLOCAL=: AUTOMAKE=: AUTOCONF=: AUTOHEADER=:" make -j $(nproc) build-libmicrohttpd \
+ && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
 # Install kodi-send and xbmcclient
