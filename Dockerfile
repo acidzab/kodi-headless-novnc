@@ -216,8 +216,10 @@ ARG WITH_CPU=
 # USE_INTERNAL_LIBS=ON makes every ENABLE_INTERNAL_* "dependent_option" default
 # to ON (ASS, CURL(+brotli, nghttp2), DAV1D, EXIV2, FLATBUFFERS, FMT, SPDLOG,
 # LIBDVD, LIBMICROHTTPD, LZO2, MARIADBCLIENT, NFS, NLOHMANNJSON, PCRE2, SWIG,
-# TAGLIB(+utfcpp), TINYXML2, UDFREAD, XSLT); CROSSGUID is ON by default and
-# FSTRCMP is built internally on Linux; FFMPEG is a plain option, hence the
+# TAGLIB(+utfcpp), UDFREAD, XSLT); CROSSGUID is ON by default and
+# FSTRCMP is built internally on Linux; FFMPEG and TINYXML2 (only declared as
+# dependent_option for depends/Windows builds, so USE_INTERNAL_LIBS does not
+# reach it on Linux) are set explicitly. FFMPEG is a plain option, hence the
 # explicit flag. Kodi downloads and builds them with ExternalProject and links
 # them statically into kodi.bin, so no RPATH / LD_LIBRARY_PATH is needed.
 # Only libs Kodi cannot build itself stay on apt: OpenSSL, zlib, sqlite3,
@@ -236,6 +238,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DUSE_INTERNAL_LIBS=ON \
     -DENABLE_INTERNAL_FFMPEG=ON \
+    -DENABLE_INTERNAL_TINYXML2=ON \
     -DAPP_RENDER_SYSTEM=gl \
     -DCORE_PLATFORM_NAME=x11 \
     -DENABLE_AIRTUNES=OFF \
@@ -306,7 +309,6 @@ RUN apt-get update -y \
     libplist-2.0-4 \
     libsqlite3-0 \
     libsmbclient0 \
-    libtinyxml2.6.2v5 \
     libudf0t64 \
     libxrandr2 \
     libxslt1.1 \
