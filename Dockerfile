@@ -229,7 +229,8 @@ ARG WITH_CPU=
 # modules (expat, ffi, lzma, bz2, ssl, sqlite3, zlib) are not pulled in by
 # FindPython.cmake outside a depends build, so they are appended to the end of
 # the link line through CMAKE_CXX_STANDARD_LIBRARIES (static archives must come
-# after libpython.a).
+# after libpython.a). -lgnutls is for the static libmicrohttpd (built with HTTPS;
+# Kodi's FindMicroHttpd has a "Todo: gnutls" and does not add it to the link).
 # Build notes:
 # - liblzo2-dev (and libpng/libgif/libjpeg): Kodi's internal TexturePacker is a
 #   *host* tool configured by its own sub-project, which does not see the
@@ -280,7 +281,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DPYTHON_PATH=/opt/kodi-deps \
     -DPYTHON_VER=${PYTHON_VERSION} \
     -DPython3_USE_STATIC_LIBS=ON \
-    -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a -lssl -lcrypto -lsqlite3 -lz -ldl -lpthread -lutil -lrt -lm" \
+    -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a -lssl -lcrypto -lsqlite3 -lgnutls -lz -ldl -lpthread -lutil -lrt -lm" \
  && MAKEFLAGS="ACLOCAL=: AUTOMAKE=: AUTOCONF=: AUTOHEADER=:" make -j $(nproc) build-libmicrohttpd \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
