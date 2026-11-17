@@ -22,6 +22,7 @@ RUN apt-get update -y \
     autoconf \
     automake \
     autopoint \
+    nasm \
     autotools-dev \
     bzip2 \
     ca-certificates \
@@ -67,12 +68,25 @@ RUN N=$(ls -d ${DEPENDS_PREFIX}/*-native) \
  && mkdir -p ${N}/bin \
  && ln -sf "$(command -v cmake)" ${N}/bin/cmake
 
-# Native: build-python + the autotools needed to autoreconf the target libs.
+# Native: build-python + automake (provides share/automake-*/config.sub that
+# many target Makefiles copy). automake/libtool are built first and serially,
+# otherwise parallel native expat/libpng race on the missing config.sub.
+RUN cd /tmp/xbmc/tools/depends \
+ && make -C native libtool \
+ && make -j $(nproc) -C native python3
+
+# depends' generated Toolchain.cmake (used by cmake-based deps: zlib, expat,
+# xz, libxml2) REQUIRES these tools inside <native>/bin. The ones depends did
+# not build are taken from apt (ln -s without -f never overwrites built ones).
+RUN N=$(ls -d ${DEPENDS_PREFIX}/*-native) \
+ && for t in nasm autoconf aclocal autoheader automake autom4te autopoint autoreconf libtool libtoolize; do \
+      [ -e ${N}/bin/$t ] || ln -s "$(command -v $t)" ${N}/bin/$t; \
+    done \
+ && ls ${N}/bin
+
 # Target: python3 and what it depends on (expat gettext libxml2 sqlite3
 # openssl libffi bzip2 xz).
-RUN cd /tmp/xbmc/tools/depends \
- && make -j $(nproc) -C native python3 libtool \
- && make -j $(nproc) -C target python3
+RUN cd /tmp/xbmc/tools/depends && make -j $(nproc) -C target python3
 
 # Collect only what the next stages need:
 #   /out/include  python headers          -> build stage
