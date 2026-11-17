@@ -184,6 +184,7 @@ RUN apt-get update -y \
     libtiff5-dev \
     libtinyxml-dev \
     libtool \
+    libtool-bin \
     libunistring-dev \
     libvorbis-dev \
     libxml2-dev \
