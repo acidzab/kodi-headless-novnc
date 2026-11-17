@@ -85,7 +85,12 @@ jobs:
 
   test:
     needs: [combine]
-    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # the multi-arch manifest resolves to the runner's own architecture
+        runner: [ubuntu-26.04, ubuntu-26.04-arm]
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: read
@@ -103,4 +108,6 @@ jobs:
         run: |
           docker pull ghcr.io/${{ github.repository }}:${{ github.event.inputs.version }}
           docker run --rm ghcr.io/${{ github.repository }}:${{ github.event.inputs.version }} \
-            sh -c "ldd /usr/lib/kodi/kodi-x11 | ( ! grep -i 'not found' )"
+            sh -c "ldd /usr/lib/kodi/kodi-x11 | ( ! grep -i 'not found' ) \
+              && ( ! ldd /usr/lib/kodi/kodi-x11 | grep -qi libpython ) \
+              && test -f /opt/kodi-python/lib/python3.14/os.py"

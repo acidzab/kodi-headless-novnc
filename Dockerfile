@@ -1,9 +1,97 @@
 ARG BASE_IMAGE="ubuntu:26.04"
 ARG EASY_NOVNC_IMAGE="fhriley/easy-novnc:1.6.0"
-ARG PYTHON_IMAGE="python:3.14.10-slim"
 
 FROM $EASY_NOVNC_IMAGE AS easy-novnc
-FROM $PYTHON_IMAGE AS python-base
+
+# ============================================================================
+# Python built by Kodi's own tools/depends (the exact version Kodi pins,
+# static libpython). Only the python3 target is built here: every other
+# library is built by Kodi's cmake (ENABLE_INTERNAL_*) or comes from apt.
+# ============================================================================
+FROM $BASE_IMAGE AS python-depends
+
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG KODI_BRANCH="master"
+ARG PYTHON_VERSION=3.14
+ARG DEPENDS_PREFIX="/opt/kodi-deps"
+ARG CFLAGS=
+ARG CXXFLAGS=
+
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends \
+    autoconf \
+    automake \
+    autopoint \
+    autotools-dev \
+    bzip2 \
+    ca-certificates \
+    cmake \
+    curl \
+    g++ \
+    gawk \
+    gcc \
+    gettext \
+    git \
+    gzip \
+    libtool \
+    m4 \
+    make \
+    patch \
+    perl \
+    pkg-config \
+    tar \
+    xz-utils \
+    zlib1g-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git /tmp/xbmc
+
+# Native build of the host triplet; the layout is
+# ${DEPENDS_PREFIX}/<triplet>-release (target) and <triplet>-native (tools).
+RUN cd /tmp/xbmc/tools/depends \
+ && ./bootstrap \
+ && ./configure \
+      --prefix=${DEPENDS_PREFIX} \
+      --host=$(gcc -dumpmachine) \
+      --with-toolchain=/usr \
+      --with-rendersystem=gl \
+      --with-tarballs=/tmp/tarballs \
+      --with-target-cflags="${CFLAGS}" \
+      --with-target-cxxflags="${CXXFLAGS}" \
+      --disable-debug
+
+# depends invokes <native>/bin/cmake for expat, xz and libxml2: reuse the apt
+# cmake instead of compiling a native one. If this ever fails, drop the
+# symlink and add "cmake" to the native targets below.
+RUN N=$(ls -d ${DEPENDS_PREFIX}/*-native) \
+ && mkdir -p ${N}/bin \
+ && ln -sf "$(command -v cmake)" ${N}/bin/cmake
+
+# Native: build-python + the autotools needed to autoreconf the target libs.
+# Target: python3 and what it depends on (expat gettext libxml2 sqlite3
+# openssl libffi bzip2 xz).
+RUN cd /tmp/xbmc/tools/depends \
+ && make -j $(nproc) -C native python3 libtool \
+ && make -j $(nproc) -C target python3
+
+# Collect only what the next stages need:
+#   /out/include  python headers          -> build stage
+#   /out/lib      libpython + its static deps -> build stage
+#   /out/pylib    stdlib (opt-1 .pyc, Kodi runs with PYTHONOPTIMIZE) -> runtime
+RUN P=$(ls -d ${DEPENDS_PREFIX}/*-release) \
+ && N=$(ls -d ${DEPENDS_PREFIX}/*-native) \
+ && for f in libpython${PYTHON_VERSION}.a libexpat.a libffi.a liblzma.a libbz2.a; do \
+      test -f "${P}/lib/${f}" || { echo "missing ${P}/lib/${f}"; exit 1; }; \
+    done \
+ && mkdir -p /out/include /out/lib \
+ && cp -a ${P}/include/python${PYTHON_VERSION} /out/include/ \
+ && cp -a ${P}/lib/libpython${PYTHON_VERSION}.a ${P}/lib/libexpat.a ${P}/lib/libffi.a \
+          ${P}/lib/liblzma.a ${P}/lib/libbz2.a /out/lib/ \
+ && L=${P}/lib/python${PYTHON_VERSION} \
+ && rm -rf ${L}/test ${L}/idlelib ${L}/turtledemo ${L}/tkinter ${L}/ensurepip \
+ && (${N}/bin/python3 -O -m compileall -q ${L} || true) \
+ && cp -a ${L} /out/pylib
+
 FROM $BASE_IMAGE AS build
 
 ARG DEBIAN_FRONTEND="noninteractive"
@@ -17,6 +105,7 @@ RUN apt-get update -y \
     autopoint \
     autotools-dev \
     bison \
+    ca-certificates \
     cmake \
     cpp \
     curl \
@@ -30,27 +119,20 @@ RUN apt-get update -y \
     git \
     gperf \
     libasound2-dev \
-    libass-dev  \
     libbz2-dev \
     libcdio-dev \
     libcdio++-dev \
-    libcrossguid-dev \
-    libcurl4-openssl-dev \
     libcwiid-dev \
-    libdav1d-dev \
     libdrm-dev \
     libegl1-mesa-dev \
     libenca-dev \
-    libexiv2-dev \
     libflac-dev \
-    libflatbuffers-dev \
-    libfmt-dev  \
     libfontconfig-dev \
     libfreetype6-dev \
     libfribidi-dev \
-    libfstrcmp-dev \
     libgbm-dev \
     libgcrypt-dev \
+    libharfbuzz-dev \
     libgif-dev  \
     libgl1-mesa-dev \
     libglew-dev \
@@ -62,34 +144,32 @@ RUN apt-get update -y \
     libiso9660-dev \
     libjpeg-dev \
     libltdl-dev \
-    liblzo2-dev \
-    libmicrohttpd-dev \
-    libnfs-dev \
     libogg-dev \
     libp8-platform-dev \
+    libpcre2-dev \
     libplist-dev \
     libpng-dev \
     libsmbclient-dev \
-    libspdlog-dev  \
     libsqlite3-dev \
     libssh-dev \
     libssl-dev \
     libtiff5-dev \
     libtinyxml-dev \
-    libtinyxml2-dev \
     libtool \
     libunistring-dev \
     libvorbis-dev \
+    libxml2-dev \
     libxkbcommon-dev \
     libxmu-dev \
     libxrandr-dev \
-    libxslt1-dev \
     libxt-dev \
     lsb-release \
+    make \
     meson \
     nasm \
     ninja-build \
-    nlohmann-json3-dev \
+    patch \
+    pkg-config \
     swig \
     unzip \
     uuid-dev \
@@ -98,11 +178,10 @@ RUN apt-get update -y \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
-# Bring in Python from the official python image instead of the distro's
-# python3-dev, so there is no apt-installed system Python to collide with.
-COPY --from=python-base /usr/local/ /usr/local/
-RUN ldconfig \
- && /usr/local/bin/pip3 install --no-cache-dir Pillow
+# Python (static libpython + headers) and its static deps, built by Kodi's own
+# tools/depends in the python-depends stage: no apt Python, no second libpython.
+COPY --from=python-depends /out/include/ /opt/kodi-deps/include/
+COPY --from=python-depends /out/lib/ /opt/kodi-deps/lib/
 
 ARG KODI_BRANCH="master"
 
@@ -120,12 +199,29 @@ ARG CXXFLAGS=
 ARG WITH_CPU=
 
 # Build Kodi
+# USE_INTERNAL_LIBS=ON makes every ENABLE_INTERNAL_* "dependent_option" default
+# to ON (ASS, CURL(+brotli, nghttp2), DAV1D, EXIV2, FLATBUFFERS, FMT, SPDLOG,
+# LIBDVD, LIBMICROHTTPD, LZO2, MARIADBCLIENT, NFS, NLOHMANNJSON, PCRE2, SWIG,
+# TAGLIB(+utfcpp), TINYXML2, UDFREAD, XSLT); CROSSGUID is ON by default and
+# FSTRCMP is built internally on Linux; FFMPEG is a plain option, hence the
+# explicit flag. Kodi downloads and builds them with ExternalProject and links
+# them statically into kodi.bin, so no RPATH / LD_LIBRARY_PATH is needed.
+# Only libs Kodi cannot build itself stay on apt: OpenSSL, zlib, sqlite3,
+# freetype, fribidi, harfbuzz, fontconfig, libxml2, tinyxml (v1), smbclient,
+# libplist, libcdio, gnutls (libmicrohttpd https), X11/GL/ALSA.
+# Python is the depends-built static libpython from /opt/kodi-deps. Its static
+# modules (expat, ffi, lzma, bz2, ssl, sqlite3, zlib) are not pulled in by
+# FindPython.cmake outside a depends build, so they are appended to the end of
+# the link line through CMAKE_CXX_STANDARD_LIBRARIES (static archives must come
+# after libpython.a).
 RUN mkdir -p /tmp/xbmc/build \
   && cd /tmp/xbmc/build \
   && CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" cmake ../. \
     ${WITH_CPU} \
     -DCMAKE_INSTALL_LIBDIR=/usr/lib \
     -DCMAKE_INSTALL_PREFIX=/usr \
+    -DUSE_INTERNAL_LIBS=ON \
+    -DENABLE_INTERNAL_FFMPEG=ON \
     -DAPP_RENDER_SYSTEM=gl \
     -DCORE_PLATFORM_NAME=x11 \
     -DENABLE_AIRTUNES=OFF \
@@ -137,10 +233,6 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_CEC=OFF \
     -DENABLE_DBUS=OFF \
     -DENABLE_DVDCSS=OFF \
-    -DENABLE_INTERNAL_FFMPEG=ON \
-    -DENABLE_INTERNAL_TAGLIB=ON \
-    -DENABLE_INTERNAL_MARIADBCLIENT=ON \
-    -DENABLE_INTERNAL_SWIG=ON \
     -DENABLE_MARIADBCLIENT=ON \
     -DENABLE_MYSQLCLIENT=OFF \
     -DENABLE_EVENTCLIENTS=OFF \
@@ -157,9 +249,10 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_UPNP=OFF \
     -DENABLE_VAAPI=OFF \
     -DENABLE_VDPAU=OFF \
-    -DPYTHON_PATH=/usr/local \
+    -DPYTHON_PATH=/opt/kodi-deps \
     -DPYTHON_VER=${PYTHON_VERSION} \
-    -DPYTHON_INTERPRETER_PATH=/usr/local/bin \
+    -DPython3_USE_STATIC_LIBS=ON \
+    -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a -lssl -lcrypto -lsqlite3 -lz -ldl -lpthread -lutil -lrt -lm" \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
 
@@ -187,26 +280,20 @@ RUN apt-get update -y \
     curl \
     gosu \
     libasound2t64 \
-    libass9 \
-    libcrossguid0 \
-    libcurl4t64 \
-    libdav1d7 \
     libegl1 \
-    libexiv2-28 \
-    libfmt10 \
-    libfstrcmp0 \
+    libfontconfig1 \
+    libfreetype6 \
+    libfribidi0 \
+    libgnutls30t64 \
+    libharfbuzz0b \
     libgl1 \
+    libssl3t64 \
     libiso9660-12 \
-    liblzo2-2 \
-    libmicrohttpd12t64 \
-    libnfs14 \
     libplist-2.0-4 \
+    libsqlite3-0 \
     libsmbclient0 \
-    libspdlog1.15 \
     libtinyxml2.6.2v5 \
-    libtinyxml2-11 \
     libudf0t64 \
-    libudfread3 \
     libxrandr2 \
     libxslt1.1 \
     samba-common-bin \
@@ -217,13 +304,21 @@ RUN apt-get update -y \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && echo 'pcm.!default = null;' > /etc/asound.conf
 
-# Copy Python from the official python image (runtime shared lib + stdlib,
-# no apt python3-minimal/libpython involved)
-COPY --from=python-base /usr/local/ /usr/local/
-RUN ldconfig
+# Python stdlib for Kodi's embedded (static) interpreter. It lives outside
+# /usr/lib so it never mixes with the system Python used by supervisor;
+# supervisord.conf points PYTHONHOME of the kodi process here.
+COPY --from=python-depends /out/pylib /opt/kodi-python/lib/python${PYTHON_VERSION}
 
 # Copy Kodi from build stage
 COPY --from=build /tmp/kodi-build/usr/ /usr/
+
+# Fail the build if Kodi's binaries need a shared lib that is not in this image
+# (internal deps are static; whatever is left comes from the apt list above).
+RUN for b in /usr/lib/kodi/kodi-*; do \
+      if ldd "$b" 2>/dev/null | grep -q "not found"; then \
+        ldd "$b" | grep "not found"; exit 1; \
+      fi; \
+    done
 
 # Copy easy-novnc
 COPY --from=easy-novnc /usr/local/bin/easy-novnc /usr/local/bin/easy-novnc
