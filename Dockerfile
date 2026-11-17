@@ -12,7 +12,6 @@ FROM $BASE_IMAGE AS python-depends
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG KODI_BRANCH="master"
-ARG PYTHON_VERSION=3.14
 ARG DEPENDS_PREFIX="/opt/kodi-deps"
 ARG CFLAGS=
 ARG CXXFLAGS=
@@ -89,27 +88,32 @@ RUN N=$(ls -d ${DEPENDS_PREFIX}/*-native) \
 RUN cd /tmp/xbmc/tools/depends && make -j $(nproc) -C target python3
 
 # Collect only what the next stages need:
-#   /out/include  python headers          -> build stage
-#   /out/lib      libpython + its static deps -> build stage
-#   /out/pylib    stdlib (opt-1 .pyc, Kodi runs with PYTHONOPTIMIZE) -> runtime
-RUN P=$(ls -d ${DEPENDS_PREFIX}/*-release) \
+#   /out/include        python headers                  -> build stage
+#   /out/lib            libpython + its static deps     -> build stage
+#   /out/python-version "X.Y" read from Kodi's own PYTHON3-VERSION, so a Python
+#                       minor bump in Kodi needs no change here -> build stage
+#   /out/kodi-python    stdlib (opt-1 .pyc, Kodi runs with PYTHONOPTIMIZE)
+#                       laid out as lib/pythonX.Y            -> runtime
+RUN PYTHON_VERSION=$(sed -n 's/^VERSION=\([0-9]*\.[0-9]*\)\..*/\1/p' /tmp/xbmc/tools/depends/target/python3/PYTHON3-VERSION) \
+ && test -n "${PYTHON_VERSION}" \
+ && P=$(ls -d ${DEPENDS_PREFIX}/*-release) \
  && N=$(ls -d ${DEPENDS_PREFIX}/*-native) \
  && for f in libpython${PYTHON_VERSION}.a libexpat.a libffi.a liblzma.a libbz2.a libintl.a; do \
       test -f "${P}/lib/${f}" || { echo "missing ${P}/lib/${f}"; exit 1; }; \
     done \
- && mkdir -p /out/include /out/lib \
+ && mkdir -p /out/include /out/lib /out/kodi-python/lib \
+ && echo "${PYTHON_VERSION}" > /out/python-version \
  && cp -a ${P}/include/python${PYTHON_VERSION} /out/include/ \
  && cp -a ${P}/lib/libpython${PYTHON_VERSION}.a ${P}/lib/libexpat.a ${P}/lib/libffi.a \
           ${P}/lib/liblzma.a ${P}/lib/libbz2.a ${P}/lib/libintl.a /out/lib/ \
  && L=${P}/lib/python${PYTHON_VERSION} \
  && rm -rf ${L}/test ${L}/idlelib ${L}/turtledemo ${L}/tkinter ${L}/ensurepip \
  && (${N}/bin/python3 -O -m compileall -q ${L} || true) \
- && cp -a ${L} /out/pylib
+ && cp -a ${L} /out/kodi-python/lib/python${PYTHON_VERSION}
 
 FROM $BASE_IMAGE AS build
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.14
 
 # Install Kodi build dependencies
 RUN apt-get update -y \
@@ -197,6 +201,7 @@ RUN apt-get update -y \
 # tools/depends in the python-depends stage: no apt Python, no second libpython.
 COPY --from=python-depends /out/include/ /opt/kodi-deps/include/
 COPY --from=python-depends /out/lib/ /opt/kodi-deps/lib/
+COPY --from=python-depends /out/python-version /opt/kodi-deps/python-version
 
 ARG KODI_BRANCH="master"
 
@@ -282,7 +287,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DENABLE_VAAPI=OFF \
     -DENABLE_VDPAU=OFF \
     -DPYTHON_PATH=/opt/kodi-deps \
-    -DPYTHON_VER=${PYTHON_VERSION} \
+    -DPYTHON_VER=$(cat /opt/kodi-deps/python-version) \
     -DPython3_USE_STATIC_LIBS=ON \
     -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a /opt/kodi-deps/lib/libintl.a -lssl -lcrypto -lsqlite3 -lgnutls -lz -ldl -lpthread -lutil -lrt -lm" \
  && MAKEFLAGS="ACLOCAL=: AUTOMAKE=: AUTOCONF=: AUTOHEADER=:" make -j $(nproc) build-libmicrohttpd \
@@ -295,7 +300,7 @@ RUN install -Dm755 \
 	/tmp/kodi-build/usr/bin/kodi-send \
  && install -Dm644 \
 	/tmp/xbmc/tools/EventClients/lib/python/xbmcclient.py \
-	/tmp/kodi-build/usr/lib/python${PYTHON_VERSION}/xbmcclient.py
+	/tmp/kodi-build/usr/lib/python$(cat /opt/kodi-deps/python-version)/xbmcclient.py
 
 # ============================================================================
 # Final runtime image
@@ -303,7 +308,6 @@ RUN install -Dm755 \
 FROM $BASE_IMAGE
 
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG PYTHON_VERSION=3.14
 
 # Install runtime dependencies
 RUN apt-get update -y \
@@ -340,7 +344,7 @@ RUN apt-get update -y \
 # Python stdlib for Kodi's embedded (static) interpreter. It lives outside
 # /usr/lib so it never mixes with the system Python used by supervisor;
 # supervisord.conf points PYTHONHOME of the kodi process here.
-COPY --from=python-depends /out/pylib /opt/kodi-python/lib/python${PYTHON_VERSION}
+COPY --from=python-depends /out/kodi-python /opt/kodi-python
 
 # Copy Kodi from build stage
 COPY --from=build /tmp/kodi-build/usr/ /usr/

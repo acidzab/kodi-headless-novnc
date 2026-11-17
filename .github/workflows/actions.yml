@@ -110,4 +110,4 @@ jobs:
           docker run --rm ghcr.io/${{ github.repository }}:${{ github.event.inputs.version }} \
             sh -c "ldd /usr/lib/kodi/kodi-x11 | ( ! grep -i 'not found' ) \
               && ( ! ldd /usr/lib/kodi/kodi-x11 | grep -qi libpython ) \
-              && test -f /opt/kodi-python/lib/python3.14/os.py"
+              && ls /opt/kodi-python/lib/python3.*/os.py"
