@@ -42,6 +42,8 @@ RUN apt-get update -y \
     pkg-config \
     tar \
     xz-utils \
+    libsqlite3-dev \
+    libssl-dev \
     zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
@@ -94,17 +96,28 @@ RUN cd /tmp/xbmc/tools/depends && make -j $(nproc) -C target python3
 #   /out/pylib    stdlib (opt-1 .pyc, Kodi runs with PYTHONOPTIMIZE) -> runtime
 RUN P=$(ls -d ${DEPENDS_PREFIX}/*-release) \
  && N=$(ls -d ${DEPENDS_PREFIX}/*-native) \
- && for f in libpython${PYTHON_VERSION}.a libexpat.a libffi.a liblzma.a libbz2.a; do \
+ && for f in libpython${PYTHON_VERSION}.a libexpat.a libffi.a liblzma.a libbz2.a libintl.a; do \
       test -f "${P}/lib/${f}" || { echo "missing ${P}/lib/${f}"; exit 1; }; \
     done \
  && mkdir -p /out/include /out/lib \
  && cp -a ${P}/include/python${PYTHON_VERSION} /out/include/ \
  && cp -a ${P}/lib/libpython${PYTHON_VERSION}.a ${P}/lib/libexpat.a ${P}/lib/libffi.a \
-          ${P}/lib/liblzma.a ${P}/lib/libbz2.a /out/lib/ \
+          ${P}/lib/liblzma.a ${P}/lib/libbz2.a ${P}/lib/libintl.a /out/lib/ \
  && L=${P}/lib/python${PYTHON_VERSION} \
  && rm -rf ${L}/test ${L}/idlelib ${L}/turtledemo ${L}/tkinter ${L}/ensurepip \
  && (${N}/bin/python3 -O -m compileall -q ${L} || true) \
  && cp -a ${L} /out/pylib
+
+# TEMPORARY (remove once the Kodi link is stable): link a tiny program against
+# the collected static libpython with the same library list Kodi's link uses, so
+# a missing symbol shows up here in a couple of minutes instead of after the
+# full Kodi compile. Must stay in sync with CMAKE_CXX_STANDARD_LIBRARIES below.
+RUN printf '#include <Python.h>\nint main(void){Py_Initialize();return Py_FinalizeEx();}\n' > /tmp/t.c \
+ && gcc /tmp/t.c -o /tmp/t -I/out/include/python${PYTHON_VERSION} \
+      /out/lib/libpython${PYTHON_VERSION}.a \
+      /out/lib/libexpat.a /out/lib/libffi.a /out/lib/liblzma.a /out/lib/libbz2.a /out/lib/libintl.a \
+      -lssl -lcrypto -lsqlite3 -lz -ldl -lpthread -lutil -lrt -lm \
+ && echo "libpython static link check: OK"
 
 FROM $BASE_IMAGE AS build
 
@@ -229,7 +242,8 @@ ARG WITH_CPU=
 # modules (expat, ffi, lzma, bz2, ssl, sqlite3, zlib) are not pulled in by
 # FindPython.cmake outside a depends build, so they are appended to the end of
 # the link line through CMAKE_CXX_STANDARD_LIBRARIES (static archives must come
-# after libpython.a). -lgnutls is for the static libmicrohttpd (built with HTTPS;
+# after libpython.a). libintl.a: depends' python3 builds _locale against depends'
+# GNU gettext (its libintl.h renames gettext() to libintl_gettext()). -lgnutls is for the static libmicrohttpd (built with HTTPS;
 # Kodi's FindMicroHttpd has a "Todo: gnutls" and does not add it to the link).
 # Build notes:
 # - liblzo2-dev (and libpng/libgif/libjpeg): Kodi's internal TexturePacker is a
@@ -281,7 +295,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DPYTHON_PATH=/opt/kodi-deps \
     -DPYTHON_VER=${PYTHON_VERSION} \
     -DPython3_USE_STATIC_LIBS=ON \
-    -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a -lssl -lcrypto -lsqlite3 -lgnutls -lz -ldl -lpthread -lutil -lrt -lm" \
+    -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a /opt/kodi-deps/lib/libintl.a -lssl -lcrypto -lsqlite3 -lgnutls -lz -ldl -lpthread -lutil -lrt -lm" \
  && MAKEFLAGS="ACLOCAL=: AUTOMAKE=: AUTOCONF=: AUTOHEADER=:" make -j $(nproc) build-libmicrohttpd \
  && make -j $(nproc) \
  && make DESTDIR=/tmp/kodi-build install
