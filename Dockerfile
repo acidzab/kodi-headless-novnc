@@ -230,7 +230,7 @@ ARG WITH_CPU=
 # to ON (ASS, CURL(+brotli, nghttp2), DAV1D, EXIV2, FLATBUFFERS, FMT, SPDLOG,
 # LIBDVD, LIBMICROHTTPD, LZO2, MARIADBCLIENT, NFS, NLOHMANNJSON, PCRE2, SWIG,
 # TAGLIB(+utfcpp), UDFREAD, XSLT); CROSSGUID is ON by default and
-# FSTRCMP is built internally on Linux; FFMPEG and TINYXML2 (only declared as
+# FFMPEG, FSTRCMP (plain option, OFF by default) and TINYXML2 (only declared as
 # dependent_option for depends/Windows builds, so USE_INTERNAL_LIBS does not
 # reach it on Linux) are set explicitly. FFMPEG is a plain option, hence the
 # explicit flag. Kodi downloads and builds them with ExternalProject and links
@@ -265,6 +265,7 @@ RUN mkdir -p /tmp/xbmc/build \
     -DUSE_INTERNAL_LIBS=ON \
     -DENABLE_INTERNAL_FFMPEG=ON \
     -DENABLE_INTERNAL_TINYXML2=ON \
+    -DENABLE_INTERNAL_FSTRCMP=ON \
     -DAPP_RENDER_SYSTEM=gl \
     -DCORE_PLATFORM_NAME=x11 \
     -DENABLE_AIRTUNES=OFF \
@@ -335,6 +336,7 @@ RUN apt-get update -y \
     libiso9660-12 \
     libplist-2.0-4 \
     libsqlite3-0 \
+    libtinyxml2.6.2v5 \
     libsmbclient0 \
     libudf0t64 \
     libxrandr2 \
