@@ -46,6 +46,12 @@ RUN apt-get update -y \
 
 RUN git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git /tmp/xbmc
 
+# Same depends bumps as the build stage (native automake, libxml2). Only this
+# patch is copied, so changes to the other patches keep this stage cached.
+COPY patches/kodi_depends_bump_minor_versions.patch /patches/
+RUN cd /tmp/xbmc \
+ && git apply --ignore-whitespace /patches/kodi_depends_bump_minor_versions.patch
+
 # Native build of the host triplet; the layout is
 # ${DEPENDS_PREFIX}/<triplet>-release (target) and <triplet>-native (tools).
 RUN cd /tmp/xbmc/tools/depends \
