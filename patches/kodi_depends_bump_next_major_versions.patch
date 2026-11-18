@@ -1,0 +1,528 @@
+From 45c7ebe2cce7b62c085bd2d58d1e760dc7452582 Mon Sep 17 00:00:00 2001
+From: acidzab
+Date: Wed, 18 Nov 2026 20:36:13 +0100
+Subject: [PATCH] [depends] Bump major versions of native and target depends
+
+Backport of xbmc/xbmc#30655 (14 commits squashed) to 22.0rc2-Piers,
+on top of kodi_depends_bump_minor_versions.patch (xbmc/xbmc#30505).
+
+The tag predates the PR base, so these files were adapted:
+- libffi 3.5.2 -> 3.8.1 (PR: 3.8.0 -> 3.8.1), native Makefile and VERSION
+- pkgconf 2.5.1 -> 3.0.11 (PR: 3.0.10 -> 3.0.11), including the 3.0.10
+  build changes (no -Dtests=disabled in Makefile and CMakeLists.txt)
+- libnfs Makefile: same changes as the PR, without the wasm patches
+  that are only on master
+---
+ cmake/modules/FindNFS.cmake                   |  5 +---
+ .../autoconf-archive/AUTOCONF-ARCHIVE-VERSION |  4 ++--
+ tools/depends/native/libffi/Makefile          |  4 ++--
+ tools/depends/native/pkgconf/CMakeLists.txt   |  1 -
+ tools/depends/native/pkgconf/Makefile         |  3 +--
+ tools/depends/native/pkgconf/PKGCONF-VERSION  |  4 ++--
+ tools/depends/target/dav1d/DAV1D-VERSION      |  4 ++--
+ .../target/fontconfig/FONTCONFIG-VERSION      |  4 ++--
+ tools/depends/target/gettext/GETTEXT-VERSION  |  4 ++--
+ tools/depends/target/gettext/Makefile         |  2 +-
+ .../depends/target/harfbuzz/HARFBUZZ-VERSION  |  4 ++--
+ .../depends/target/libevdev/LIBEVDEV-VERSION  |  4 ++++
+ tools/depends/target/libevdev/Makefile        | 12 ++--------
+ tools/depends/target/libffi/LIBFFI-VERSION    |  4 ++--
+ .../target/libnfs/01-MSUWP-compat.patch       | 11 ---------
+ tools/depends/target/libnfs/LIBNFS-VERSION    |  6 ++---
+ tools/depends/target/libnfs/Makefile          |  7 +++---
+ tools/depends/target/libudev/LIBUDEV-VERSION  |  4 ++++
+ tools/depends/target/libudev/Makefile         | 15 ++++--------
+ tools/depends/target/libuuid/LIBUUID-VERSION  |  4 ++++
+ tools/depends/target/libuuid/Makefile         | 12 ++--------
+ tools/depends/target/mtdev/MTDEV-VERSION      |  4 ++++
+ tools/depends/target/mtdev/Makefile           | 12 ++--------
+ .../sqlite3/001-Disable-sqlite3bin.patch      | 16 -------------
+ tools/depends/target/sqlite3/Makefile         | 18 +++++++--------
+ tools/depends/target/sqlite3/SQLITE3-VERSION  |  4 ++--
+ tools/depends/target/sqlite3/sqlite3.c.patch  | 23 +++++++++----------
+ tools/depends/target/utfcpp/UTFCPP-VERSION    |  4 ++--
+ 28 files changed, 76 insertions(+), 123 deletions(-)
+ create mode 100644 tools/depends/target/libevdev/LIBEVDEV-VERSION
+ delete mode 100644 tools/depends/target/libnfs/01-MSUWP-compat.patch
+ create mode 100644 tools/depends/target/libudev/LIBUDEV-VERSION
+ create mode 100644 tools/depends/target/libuuid/LIBUUID-VERSION
+ create mode 100644 tools/depends/target/mtdev/MTDEV-VERSION
+ delete mode 100644 tools/depends/target/sqlite3/001-Disable-sqlite3bin.patch
+
+diff --git a/cmake/modules/FindNFS.cmake b/cmake/modules/FindNFS.cmake
+index a636ca5757..e480a96702 100644
+--- a/cmake/modules/FindNFS.cmake
++++ b/cmake/modules/FindNFS.cmake
+@@ -15,15 +15,12 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+                    -DENABLE_DOCUMENTATION=OFF
+                    -DENABLE_UTILS=OFF
+                    -DENABLE_EXAMPLES=OFF
++                   -DENABLE_TLS=OFF
+                    -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+ 
+     if(WIN32 OR WINDOWS_STORE)
+       set(${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_C_FLAGS "/sdl-")
+       set(${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_CXX_FLAGS "/sdl-")
+-
+-      set(patches "${CORE_SOURCE_DIR}/tools/depends/target/${${CMAKE_FIND_PACKAGE_NAME}_MODULE}/01-MSUWP-compat.patch")
+-      generate_patchcommand("${patches}")
+-      unset(patches)
+     endif()
+ 
+     BUILD_DEP_TARGET()
+diff --git a/tools/depends/native/autoconf-archive/AUTOCONF-ARCHIVE-VERSION b/tools/depends/native/autoconf-archive/AUTOCONF-ARCHIVE-VERSION
+index a9892ffb7f..f9387d09d7 100644
+--- a/tools/depends/native/autoconf-archive/AUTOCONF-ARCHIVE-VERSION
++++ b/tools/depends/native/autoconf-archive/AUTOCONF-ARCHIVE-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=autoconf-archive
+-VERSION=2024.10.16
++VERSION=2026.11.11
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.xz
+-SHA512=91140cb666447f12a1d39d7d42f5fe6ea3601bb586f466381c9e949087aafa06aed8d061a4f5d020a3d234eb710e4bb47cd25380bcffd8c423fa1a7af05e988b
++SHA512=1d2f340c3485594da9b1feb25862a8e738eaacc6698c52514c92bd4c968554eaa6d79591dd776c4794c3580f1b3c8ef6d190b246dbd0875b96be15a564c9958f
+diff --git a/tools/depends/native/libffi/Makefile b/tools/depends/native/libffi/Makefile
+index 42f7afd7da..6b85d61303 100644
+--- a/tools/depends/native/libffi/Makefile
++++ b/tools/depends/native/libffi/Makefile
+@@ -5,9 +5,9 @@ DEPS = ../../Makefile.include Makefile ../../download-files.include
+ 
+ # lib name, version
+ LIBNAME=libffi
+-VERSION=3.5.2
++VERSION=3.8.1
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.gz
+-SHA512=76974a84e3aee6bbd646a6da2e641825ae0b791ca6efdc479b2d4cbcd3ad607df59cffcf5031ad5bd30822961a8c6de164ac8ae379d1804acd388b1975cdbf4d
++SHA512=44370f8779765ac83161d927025c8178919ae30feffaad6cdd2b9f95fd8314ca96d2c75d23d102f4af06e55787ec25ebf3cf35cec6ea6881c16e526b27bec0dc
+ include ../../download-files.include
+ 
+ # configuration settings
+diff --git a/tools/depends/native/pkgconf/CMakeLists.txt b/tools/depends/native/pkgconf/CMakeLists.txt
+index 5109bdfd7b..00088d9123 100644
+--- a/tools/depends/native/pkgconf/CMakeLists.txt
++++ b/tools/depends/native/pkgconf/CMakeLists.txt
+@@ -56,7 +56,6 @@ ExternalProject_Add(pkgconf_build
+                     --libdir=lib
+                     --bindir=bin
+                     --buildtype=release
+-                    -Dtests=disabled
+   BUILD_COMMAND     ${NINJA_EXECUTABLE} -C ./build
+   INSTALL_COMMAND   ${NINJA_EXECUTABLE} -C ./build install
+   BUILD_IN_SOURCE   1
+diff --git a/tools/depends/native/pkgconf/Makefile b/tools/depends/native/pkgconf/Makefile
+index 8958280334..3664cada0c 100644
+--- a/tools/depends/native/pkgconf/Makefile
++++ b/tools/depends/native/pkgconf/Makefile
+@@ -12,8 +12,7 @@ endif
+ # configuration settings
+ CONFIGURE = $(NATIVEPREFIX)/bin/python3 $(NATIVEPREFIX)/bin/meson setup \
+ 	--buildtype=$(MESON_BUILD_TYPE) \
+-	--prefix=$(PREFIX) \
+-  -Dtests=disabled
++	--prefix=$(PREFIX)
+ 
+ export CC CXX CFLAGS CXXFLAGS
+ 
+diff --git a/tools/depends/native/pkgconf/PKGCONF-VERSION b/tools/depends/native/pkgconf/PKGCONF-VERSION
+index 2617b59b53..0424a2dc86 100644
+--- a/tools/depends/native/pkgconf/PKGCONF-VERSION
++++ b/tools/depends/native/pkgconf/PKGCONF-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=pkgconf
+-VERSION=2.5.1
++VERSION=3.0.11
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.gz
+-SHA512=53244f372ea21125a1d97c5b89a84299740b55a66165782e807ed23adab3a07408a1547f1f40156e3060359660d07f49846c8b4893beef10ac9440ab7e8611cc
++SHA512=9bf7de6177f068181b0617dd4f56550758456122fa00e80075739e900a353d827ba31483ccb696de2cecd0eb04eaca904ddd5e09385f28765b51c23209fed7f4
+diff --git a/tools/depends/target/dav1d/DAV1D-VERSION b/tools/depends/target/dav1d/DAV1D-VERSION
+index 7b4cd1d99b..49197cb78a 100644
+--- a/tools/depends/target/dav1d/DAV1D-VERSION
++++ b/tools/depends/target/dav1d/DAV1D-VERSION
+@@ -1,6 +1,6 @@
+ LIBNAME=dav1d
+-VERSION=1.5.4
++VERSION=1.5.5
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.bz2
+-SHA512=1e4dbc409ce77c61c5e4a4f8d6855c35cabf3da5dd6456beccb4c13d0fa58a50045d8ce5bb6832516fe860e6d27303b7b6b8404b330581e122513d39d524dbcc
++SHA512=509167ee378b81dc3e9a017f1a63a5a972ad51dd752a905853ab6270084368422ff9cf57915c9b0f0ee88f93a14f453aa0556b694e82646952c711b46a569a4b
+ BYPRODUCT=libdav1d.a
+ BYPRODUCT_WIN=libdav1d.lib
+diff --git a/tools/depends/target/fontconfig/FONTCONFIG-VERSION b/tools/depends/target/fontconfig/FONTCONFIG-VERSION
+index 66cae129dd..a95ec81e0a 100644
+--- a/tools/depends/target/fontconfig/FONTCONFIG-VERSION
++++ b/tools/depends/target/fontconfig/FONTCONFIG-VERSION
+@@ -1,5 +1,5 @@
+ LIBNAME=fontconfig
+-VERSION=2.18.3
++VERSION=2.18.4
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.xz
+-SHA512=c3e769f74dc21093ada48084bddaca1ab525b1c4f04c5c11f067b69346fab153cad95de8b8238b20b02e8b9679c314bf2e0e9c4218511d8fe0f1826e4c4c6a24
++SHA512=53b2759536963c649ef3950a94eb9971e9f2e3b96d8cc4e3265d4c3c2d14cb5cffa528435f04d5b22d0f43534e24e11c6e05822c933c77a58cb3a70dad2608d5
+ BYPRODUCT=libfontconfig.a
+diff --git a/tools/depends/target/gettext/GETTEXT-VERSION b/tools/depends/target/gettext/GETTEXT-VERSION
+index 9aa25a750c..3c5cea3ddb 100644
+--- a/tools/depends/target/gettext/GETTEXT-VERSION
++++ b/tools/depends/target/gettext/GETTEXT-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=gettext
+-VERSION=0.22.4
++VERSION=1.0
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.gz
+-SHA512=ad2fa2f69be996a637e9b51e8941a39e10050060245dcec1fe75c15b68d0ff973043c87b77e4e2830e407e3bdd040b578f8e24fd05bba43adb94eaee34001aa5
++SHA512=664c3b1985cb7d1e7ed443e036a6c7f8c1f47354720d13c2db2c2cf8a85136d0ffc2cc920dce1240d688f706653f647749ce29f69eb0bb659e043b499f9c47eb
+diff --git a/tools/depends/target/gettext/Makefile b/tools/depends/target/gettext/Makefile
+index 4de2ed81b3..3dda96527f 100644
+--- a/tools/depends/target/gettext/Makefile
++++ b/tools/depends/target/gettext/Makefile
+@@ -6,7 +6,7 @@ CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) build-aux/; \
+     ./configure --prefix=$(PREFIX) \
+     --disable-csharp --disable-native-java --disable-java --without-emacs \
+     --disable-libasprintf --disable-openmp \
+-    --with-included-gettext \
++    --with-included-libintl \
+     --with-included-glib \
+     --with-included-libcroco \
+     --with-included-libxml \
+diff --git a/tools/depends/target/harfbuzz/HARFBUZZ-VERSION b/tools/depends/target/harfbuzz/HARFBUZZ-VERSION
+index 26f96dd21f..f4586ab90c 100644
+--- a/tools/depends/target/harfbuzz/HARFBUZZ-VERSION
++++ b/tools/depends/target/harfbuzz/HARFBUZZ-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=harfbuzz
+-VERSION=14.2.0
++VERSION=15.1.0
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.xz
+-SHA512=5c9367cf28516c5932c84bcd392dba737cd7e451c864c4fe3bd38c49b38c822fdaa07b197c24e361ce14e2bbec2dc018e220693a0bfe39cefc5336e928b8b4c9
++SHA512=c7f69c8d18e6f969a348b7f2173c9fbb9920bce51146462c3535984a82f4b38bd47267bbf8c6ba58c8e0e04a4961abcd74015741b351e346d99aeaf438fda5d0
+diff --git a/tools/depends/target/libevdev/LIBEVDEV-VERSION b/tools/depends/target/libevdev/LIBEVDEV-VERSION
+new file mode 100644
+index 0000000000..40820f610d
+--- /dev/null
++++ b/tools/depends/target/libevdev/LIBEVDEV-VERSION
+@@ -0,0 +1,4 @@
++LIBNAME=libevdev
++VERSION=1.14.0
++ARCHIVE=$(LIBNAME)-$(VERSION).tar.xz
++SHA512=527a643ec805618f04967c88105347966fc54726edbd884631255eb8f71cd4fdcb661b2051cd724a979372dbc5a7e47c8ab68098fa8cd3fcdd9a5413db7e062c
+diff --git a/tools/depends/target/libevdev/Makefile b/tools/depends/target/libevdev/Makefile
+index 74ad29bcc3..17abdf2482 100644
+--- a/tools/depends/target/libevdev/Makefile
++++ b/tools/depends/target/libevdev/Makefile
+@@ -1,13 +1,5 @@
+-include ../../Makefile.include
+-DEPS =../../Makefile.include Makefile ../../download-files.include
+-
+-# lib name, version
+-LIBNAME=libevdev
+-VERSION=1.5.8
+-SOURCE=$(LIBNAME)-$(VERSION)
+-ARCHIVE=$(SOURCE).tar.xz
+-SHA512=e9485d8c6b48ebf762b32b003bc6b761c548024ad3bc34a0793485b53383746881fcc9b206a078d571937291e519d9822e50c5d8816778d347094691b65ec3fa
+-include ../../download-files.include
++include ../../Makefile.include LIBEVDEV-VERSION ../../download-files.include
++DEPS =../../Makefile.include LIBEVDEV-VERSION Makefile ../../download-files.include
+ 
+ # configuration settings
+ CONFIGURE=./configure --prefix=$(PREFIX) --disable-shared --enable-static --disable-tests
+diff --git a/tools/depends/target/libffi/LIBFFI-VERSION b/tools/depends/target/libffi/LIBFFI-VERSION
+index b9e5122d7c..6080b184d6 100644
+--- a/tools/depends/target/libffi/LIBFFI-VERSION
++++ b/tools/depends/target/libffi/LIBFFI-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=libffi
+-VERSION=3.5.2
++VERSION=3.8.1
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.gz
+-SHA512=76974a84e3aee6bbd646a6da2e641825ae0b791ca6efdc479b2d4cbcd3ad607df59cffcf5031ad5bd30822961a8c6de164ac8ae379d1804acd388b1975cdbf4d
++SHA512=44370f8779765ac83161d927025c8178919ae30feffaad6cdd2b9f95fd8314ca96d2c75d23d102f4af06e55787ec25ebf3cf35cec6ea6881c16e526b27bec0dc
+diff --git a/tools/depends/target/libnfs/01-MSUWP-compat.patch b/tools/depends/target/libnfs/01-MSUWP-compat.patch
+deleted file mode 100644
+index 70cac0b767..0000000000
+--- a/tools/depends/target/libnfs/01-MSUWP-compat.patch
++++ /dev/null
+@@ -1,11 +0,0 @@
+---- a/CMakeLists.txt
+-+++ b/CMakeLists.txt
+-@@ -39,7 +39,7 @@
+-   add_definitions(-Dlibnfs_EXPORTS)
+- endif()
+- 
+--if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+-+if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+-   add_definitions("-D_U_=" -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE)
+-   list(APPEND SYSTEM_LIBRARIES ws2_32)
+-   add_subdirectory(win32)
+diff --git a/tools/depends/target/libnfs/LIBNFS-VERSION b/tools/depends/target/libnfs/LIBNFS-VERSION
+index 892aa7afcf..b0b61d4608 100644
+--- a/tools/depends/target/libnfs/LIBNFS-VERSION
++++ b/tools/depends/target/libnfs/LIBNFS-VERSION
+@@ -1,6 +1,6 @@
+ LIBNAME=libnfs
+-VERSION=5.0.2
++VERSION=8.0.1
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.gz
+-SHA512=6dcf4ea8a01b35beb53694625d20fbebd858a88725c2742671878ad6fe7877999f93d262fb58a435b00c283c3e6fb6fa7222d04bb4540bf674b7ce196e9424f5
++SHA512=6ce4450f28e163bc04b32954ef2094bfa464733e08520026821ce366946de501dae22aff073e729145d6450213317eda84f0078b47d3356b1d98d7dfee23e922
+ BYPRODUCT=libnfs.a
+-BYPRODUCT_WIN=nfs.lib
++BYPRODUCT_WIN=libnfs.lib
+diff --git a/tools/depends/target/libnfs/Makefile b/tools/depends/target/libnfs/Makefile
+index 560f2dfd11..25902edc2e 100644
+--- a/tools/depends/target/libnfs/Makefile
++++ b/tools/depends/target/libnfs/Makefile
+@@ -1,13 +1,13 @@
+ include ../../Makefile.include LIBNFS-VERSION ../../download-files.include
+-DEPS= ../../Makefile.include Makefile LIBNFS-VERSION ../../download-files.include \
+-                  01-MSUWP-compat.patch
++DEPS= ../../Makefile.include Makefile LIBNFS-VERSION ../../download-files.include
+ 
+ # configuration settings
+ CMAKE_OPTIONS=-DBUILD_SHARED_LIBS=OFF \
+               -DENABLE_TESTS=OFF \
+               -DENABLE_DOCUMENTATION=OFF \
+               -DENABLE_UTILS=OFF \
+-              -DENABLE_EXAMPLES=OFF
++              -DENABLE_EXAMPLES=OFF \
++              -DENABLE_TLS=OFF
+ 
+ LIBDYLIB=$(PLATFORM)/build/lib/$(BYPRODUCT)
+ 
+@@ -17,7 +17,6 @@ all: .installed-$(PLATFORM)
+ 	-rm -rf $(PLATFORM); mkdir -p $(PLATFORM)
+ 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
+ 	cd $(PLATFORM); mkdir -p build
+-	cd $(PLATFORM); patch -p1 -i ../01-MSUWP-compat.patch
+ 	cd $(PLATFORM)/build; $(CMAKE) $(CMAKE_OPTIONS) ..
+ 	touch $@
+ 
+diff --git a/tools/depends/target/libudev/LIBUDEV-VERSION b/tools/depends/target/libudev/LIBUDEV-VERSION
+new file mode 100644
+index 0000000000..c77b9e4143
+--- /dev/null
++++ b/tools/depends/target/libudev/LIBUDEV-VERSION
+@@ -0,0 +1,4 @@
++LIBNAME=libudev
++VERSION=3.3.0
++ARCHIVE=$(LIBNAME)-$(VERSION).tar.gz
++SHA512=f36529fe9579ce23fed7565640afeed1577c8aaeaa7df84cdd7e63ef153d737364fcd3f4b304c0609103cd73203914c050df311df5a2b7d8c04f69cf40c24d3a
+diff --git a/tools/depends/target/libudev/Makefile b/tools/depends/target/libudev/Makefile
+index 608baa69e6..aa92e013b9 100644
+--- a/tools/depends/target/libudev/Makefile
++++ b/tools/depends/target/libudev/Makefile
+@@ -1,15 +1,10 @@
+-include ../../Makefile.include
+-DEPS =../../Makefile.include Makefile ../../download-files.include
+-
+-# lib name, version
+-LIBNAME=libudev
+-VERSION=3.2.5
+-SOURCE=$(LIBNAME)-$(VERSION)
+-ARCHIVE=$(SOURCE).tar.gz
+-SHA512=bc3dbe847a36dedbb2617c9fe123aa8d66adb0ab731a447a2dae4dff8031a09a0df10fac5cf85c6c4818f46f106336ead54620af0bb86c01a0a31dbda129a8f7
+-include ../../download-files.include
++include ../../Makefile.include LIBUDEV-VERSION ../../download-files.include
++DEPS =../../Makefile.include LIBUDEV-VERSION Makefile ../../download-files.include
+ 
+ # configuration settings
++# the static libudev exports eudev's internal helpers; rename those that
++# clash with other static libs such as libsmbclient
++export CFLAGS+=-Dparse_time=eudev_parse_time -Dstrv_find=eudev_strv_find
+ CONFIGURE=./configure --prefix=$(PREFIX) --disable-shared --enable-static --enable-introspection=no --disable-programs --disable-blkid --disable-selinux --disable-manpages --disable-kmod --disable-mtd_probe
+ 
+ LIBDYLIB=$(PLATFORM)/src/libudev/.libs/libudev.la
+diff --git a/tools/depends/target/libuuid/LIBUUID-VERSION b/tools/depends/target/libuuid/LIBUUID-VERSION
+new file mode 100644
+index 0000000000..27ee690269
+--- /dev/null
++++ b/tools/depends/target/libuuid/LIBUUID-VERSION
+@@ -0,0 +1,4 @@
++LIBNAME=libuuid
++VERSION=1.47.4
++ARCHIVE=e2fsprogs-$(VERSION).tar.xz
++SHA512=c316ce38d73786fb45b3728cd31991fe81b14a1e61dae645f3471c3f35983c4394e4606b47194c3e607897b7ae5a5ef1d376adb204383afa8c4219db8617d970
+diff --git a/tools/depends/target/libuuid/Makefile b/tools/depends/target/libuuid/Makefile
+index 68af373143..f524b5ca67 100644
+--- a/tools/depends/target/libuuid/Makefile
++++ b/tools/depends/target/libuuid/Makefile
+@@ -1,20 +1,12 @@
+-include ../../Makefile.include
+-DEPS = ../../Makefile.include Makefile ../../download-files.include
++include ../../Makefile.include LIBUUID-VERSION ../../download-files.include
++DEPS = ../../Makefile.include LIBUUID-VERSION Makefile ../../download-files.include
+ 
+ # We use uuid from e2fsprogs for legacy. util-linux works fine on android now
+-# lib name, version
+-LIBNAME=libuuid
+-VERSION=1.46.5
+-SOURCE=e2fsprogs-$(VERSION)
+-ARCHIVE=$(SOURCE).tar.xz
+-SHA512=53282e1c524f62a95012b1aceef296d494f5238c82c9b08b29fbe6a803dbf7ccfdcd9124eb2f11fe2ff9de26387c78751a92c3217ca414f6db6242098a72d3fa
+-include ../../download-files.include
+ 
+ LIBDYLIB=$(PLATFORM)/lib/$(LIBNAME).a
+ 
+ all: .installed-$(PLATFORM)
+ 
+-
+ .configured-$(PLATFORM): $(DEPS) | $(TARBALLS_LOCATION)/$(ARCHIVE).$(HASH_TYPE)
+ 	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
+ 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
+diff --git a/tools/depends/target/mtdev/MTDEV-VERSION b/tools/depends/target/mtdev/MTDEV-VERSION
+new file mode 100644
+index 0000000000..67124157b5
+--- /dev/null
++++ b/tools/depends/target/mtdev/MTDEV-VERSION
+@@ -0,0 +1,4 @@
++LIBNAME=mtdev
++VERSION=1.1.7
++ARCHIVE=$(LIBNAME)-$(VERSION).tar.bz2
++SHA512=e6174a38cf67a7f12a3b91e4e27bf74a18d6b40a956950ebb748b0ff87092333daa07e647b26038a5a533f8c48e845d649848e6ba99ea009ab87fd96ed188152
+diff --git a/tools/depends/target/mtdev/Makefile b/tools/depends/target/mtdev/Makefile
+index d6c553356c..33c2ff7f04 100644
+--- a/tools/depends/target/mtdev/Makefile
++++ b/tools/depends/target/mtdev/Makefile
+@@ -1,13 +1,5 @@
+-include ../../Makefile.include
+-DEPS =../../Makefile.include Makefile ../../download-files.include
+-
+-# lib name, version
+-LIBNAME=mtdev
+-VERSION=1.1.5
+-SOURCE=$(LIBNAME)-$(VERSION)
+-ARCHIVE=$(SOURCE).tar.bz2
+-SHA512=78477a4af784e3f846df867f1428ffdc458e3ff33d465d45a84247a7e52f0e215cace397d72be64f6e641f07e0b97a930eff0e07fe9507e0138fb028a4037d6d
+-include ../../download-files.include
++include ../../Makefile.include MTDEV-VERSION ../../download-files.include
++DEPS =../../Makefile.include MTDEV-VERSION Makefile ../../download-files.include
+ 
+ # configuration settings
+ CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) config-aux/; ./configure --prefix=$(PREFIX) --enable-static --disable-shared
+diff --git a/tools/depends/target/sqlite3/001-Disable-sqlite3bin.patch b/tools/depends/target/sqlite3/001-Disable-sqlite3bin.patch
+deleted file mode 100644
+index 4500b0259b..0000000000
+--- a/tools/depends/target/sqlite3/001-Disable-sqlite3bin.patch
++++ /dev/null
+@@ -1,16 +0,0 @@
+---- a/Makefile.am
+-+++ b/Makefile.am
+-@@ -4,13 +4,6 @@
+- libsqlite3_la_SOURCES = sqlite3.c
+- libsqlite3_la_LDFLAGS = -no-undefined -version-info 8:6:8
+- 
+--bin_PROGRAMS = sqlite3
+--sqlite3_SOURCES = shell.c sqlite3.h
+--EXTRA_sqlite3_SOURCES = sqlite3.c
+--sqlite3_LDADD = @EXTRA_SHELL_OBJ@ @READLINE_LIBS@
+--sqlite3_DEPENDENCIES = @EXTRA_SHELL_OBJ@
+--sqlite3_CFLAGS = $(AM_CFLAGS) -DSQLITE_ENABLE_EXPLAIN_COMMENTS -DSQLITE_ENABLE_DBPAGE_VTAB -DSQLITE_ENABLE_STMTVTAB -DSQLITE_ENABLE_DBSTAT_VTAB $(SHELL_CFLAGS)
+--
+- include_HEADERS = sqlite3.h sqlite3ext.h
+- 
+- EXTRA_DIST = sqlite3.1 tea Makefile.msc sqlite3.rc sqlite3rc.h README.txt Replace.cs Makefile.fallback
+diff --git a/tools/depends/target/sqlite3/Makefile b/tools/depends/target/sqlite3/Makefile
+index 3b68ace1a3..64dd3fd2dc 100644
+--- a/tools/depends/target/sqlite3/Makefile
++++ b/tools/depends/target/sqlite3/Makefile
+@@ -1,36 +1,36 @@
+ include ../../Makefile.include SQLITE3-VERSION ../../download-files.include
+ DEPS = ../../Makefile.include SQLITE3-VERSION Makefile ../../download-files.include \
+-                                001-Disable-sqlite3bin.patch \
+                                 sqlite3.c.patch
+ 
+ # configuration settings
+ export CXXFLAGS+=-DSQLITE_ENABLE_COLUMN_METADATA=1
+ export CFLAGS+=-DSQLITE_TEMP_STORE=3 -DSQLITE_DEFAULT_MMAP_SIZE=0x10000000
+-CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) .; \
+-          ./configure --prefix=$(PREFIX) --disable-shared --enable-threadsafe --disable-readline
++# autosetup does not read config.site, so pass the toolchain explicitly
++CONFIGURE=./configure --prefix=$(PREFIX) --host=$(HOST) \
++          --disable-shared --enable-threadsafe --disable-readline \
++          CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" AR="$(AR)" \
++          CPPFLAGS="$(CPPFLAGS)"
+ 
+-LIBDYLIB=$(PLATFORM)/.libs/lib$(LIBNAME)3.a
++LIBDYLIB=$(PLATFORM)/lib$(LIBNAME)3.a
+ 
+ all: .installed-$(PLATFORM)
+ 
+ .configured-$(PLATFORM): $(DEPS) | $(TARBALLS_LOCATION)/$(ARCHIVE).$(HASH_TYPE)
+ 	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
+ 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
+-	# do not build the program sqlite3
+-	cd $(PLATFORM); patch -p1 -i ../001-Disable-sqlite3bin.patch
+ # seems MAP_POPULATE is broken on aarch64
+ ifneq ($(OS),android)
+ 	cd $(PLATFORM); patch -p1 -i ../sqlite3.c.patch
+ endif
+-	cd $(PLATFORM); $(AUTORECONF) -vif
+ 	cd $(PLATFORM); $(CONFIGURE)
+ 	touch $@
+ 
++# only build the library, not the sqlite3 program
+ $(LIBDYLIB): .configured-$(PLATFORM)
+-	$(MAKE) -C $(PLATFORM)
++	$(MAKE) -C $(PLATFORM) lib$(LIBNAME)3.a
+ 
+ .installed-$(PLATFORM): $(LIBDYLIB)
+-	$(MAKE) -C $(PLATFORM) install
++	$(MAKE) -C $(PLATFORM) install-lib install-headers install-pc
+ 	touch $@
+ 
+ clean:
+diff --git a/tools/depends/target/sqlite3/SQLITE3-VERSION b/tools/depends/target/sqlite3/SQLITE3-VERSION
+index 1bfb2cc5fb..c4c0917853 100644
+--- a/tools/depends/target/sqlite3/SQLITE3-VERSION
++++ b/tools/depends/target/sqlite3/SQLITE3-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=sqlite
+-VERSION=3390400
++VERSION=3540100
+ ARCHIVE=$(LIBNAME)-autoconf-$(VERSION).tar.gz
+-SHA512=cc1de214e69ef677cac3f6dd2000ccfcf4b672ab464a115d96f24707009a408630e762c3cda89741b728ab34c4d9f5b8f8b12e9b11448e8364642b4421c3393d
++SHA512=3df4348f54f5cd0554eec6d91e1d08a70535b7b78f497b2c6f24910b5087f6ef70483c9e35fa388bd8f38483cb8d1cb84e98ccdd58b9f525a10e0cf48c8c6742
+diff --git a/tools/depends/target/sqlite3/sqlite3.c.patch b/tools/depends/target/sqlite3/sqlite3.c.patch
+index d23302fbc5..f3f24e278d 100644
+--- a/tools/depends/target/sqlite3/sqlite3.c.patch
++++ b/tools/depends/target/sqlite3/sqlite3.c.patch
+@@ -1,19 +1,18 @@
+ --- a/sqlite3.c
+ +++ b/sqlite3.c
+-@@ -40656,8 +40656,12 @@
+- #if HAVE_MREMAP
+-     pNew = osMremap(pOrig, nReuse, nNew, MREMAP_MAYMOVE);
+-     zErr = "mremap";
+-+#else
+-+#if defined(MAP_POPULATE)
+-+    pNew = osMmap(pReq, nNew-nReuse, flags, MAP_SHARED | MAP_POPULATE, h, nReuse);
++@@ -46272,7 +46272,11 @@
++       pNew = osMremap(pOrig, nReuse, nNew, MREMAP_MAYMOVE);
++       zErr = "mremap";
+  #else
+-     pNew = osMmap(pReq, nNew-nReuse, flags, MAP_SHARED, h, nReuse);
+++#if defined(MAP_POPULATE)
+++      pNew = osMmap(&pOrig[nReuse], nNew-nReuse, flags, MAP_SHARED | MAP_POPULATE, h, nReuse);
+++#else
++       pNew = osMmap(&pOrig[nReuse], nNew-nReuse, flags, MAP_SHARED, h, nReuse);
+ +#endif
+-     if( pNew!=MAP_FAILED ){
+-       if( pNew!=pReq ){
+-         osMunmap(pNew, nNew - nReuse);
+-@@ -40676,7 +40676,11 @@
++       if( pNew!=MAP_FAILED ){
++         if( pNew!=&pOrig[nReuse] ){
++           osMunmap(pNew, nNew - nReuse);
++@@ -46292,7 +46296,11 @@
+  
+    /* If pNew is still NULL, try to create an entirely new mapping. */
+    if( pNew==0 ){
+diff --git a/tools/depends/target/utfcpp/UTFCPP-VERSION b/tools/depends/target/utfcpp/UTFCPP-VERSION
+index fdac10422c..6d2fd49bc8 100644
+--- a/tools/depends/target/utfcpp/UTFCPP-VERSION
++++ b/tools/depends/target/utfcpp/UTFCPP-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=utfcpp
+-VERSION=4.2.1
++VERSION=5.0.0
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.gz
+-SHA512=07d0e4bebb0c80a5fdabbd4ae0c005c17a99b88e01db70976ba01878ce1f9771ffaf33e510985d4c80f19b31df23e5ce4abbc1fc89460819c5b29b6e774a8b21
++SHA512=3abff4aef40a418f546e4033c71be6d77071b2603a5e518cae07d8120ecaebee34f6e3aef7b75928846ac5cd0cd103398e84aa38a126df50f8b0abd544173d43

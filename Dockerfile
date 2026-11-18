@@ -46,11 +46,15 @@ RUN apt-get update -y \
 
 RUN git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git /tmp/xbmc
 
-# Same depends bumps as the build stage (native automake, libxml2). Only this
-# patch is copied, so changes to the other patches keep this stage cached.
-COPY patches/kodi_depends_bump_minor_versions.patch /patches/
+# Same depends bumps as the build stage (python3 chain: gettext, libffi,
+# sqlite3, libxml2 and the native tools). Only the depends patches are copied,
+# so changes to the other patches keep this stage cached. They touch the same
+# files, so they are applied one at a time, in order.
+COPY patches/kodi_depends_bump_minor_versions.patch patches/kodi_depends_bump_next_major_versions.patch /patches/
 RUN cd /tmp/xbmc \
- && git apply --ignore-whitespace /patches/kodi_depends_bump_minor_versions.patch
+ && for p in /patches/kodi_depends_bump_minor_versions.patch /patches/kodi_depends_bump_next_major_versions.patch; do \
+      git apply --ignore-whitespace "$p" || exit 1; \
+    done
 
 # Native build of the host triplet; the layout is
 # ${DEPENDS_PREFIX}/<triplet>-release (target) and <triplet>-native (tools).
@@ -217,8 +221,12 @@ RUN cd /tmp \
 
 # Apply AudioLibrary Api Patch
 COPY patches/ /patches/
+# One at a time, in name order: several patches touch the same files and a
+# single "git apply a.patch b.patch" checks each one against the clean tree.
 RUN cd /tmp/xbmc \
- && git apply --ignore-whitespace /patches/*.patch
+ && for p in /patches/*.patch; do \
+      git apply --ignore-whitespace "$p" || exit 1; \
+    done
 
 ARG CFLAGS=
 ARG CXXFLAGS=
