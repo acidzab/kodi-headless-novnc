@@ -1,4 +1,4 @@
-From dea0b86d80489a839e81e10af830202869265fce Mon Sep 17 00:00:00 2001
+From 3d7b7eac2829eff94d7c3234c7c9fdbc1e1dc606 Mon Sep 17 00:00:00 2001
 From: Dom Cobley <popcornmix@gmail.com>
 Date: Tue, 10 Nov 2026 15:55:10 +0000
 Subject: [PATCH] [depends][ffmpeg] Write the last pixel of odd width yuv2rgb
@@ -10,21 +10,21 @@ column is never written. On ARM, where the NEON versions only take
 widths divisible by 16, this shows up as a line of random pixels on the
 right edge of odd width posters.
 
-Carry the fix submitted upstream until it lands in an FFmpeg release:
-https://code.ffmpeg.org/FFmpeg/FFmpeg/pulls/25723
+Backport the upstream fix (FFmpeg 72f8c3376b, libswscale part only)
+until it is in an FFmpeg release.
 ---
  cmake/modules/FindFFMPEG.cmake                |   3 +
- ...ffmpeg-all-swscale-yuv2rgb-odd-width.patch | 221 ++++++++++++++++++
+ ...ffmpeg-all-swscale-yuv2rgb-odd-width.patch | 249 ++++++++++++++++++
  tools/depends/target/ffmpeg/CMakeLists.txt    |   1 +
  tools/depends/target/ffmpeg/Makefile          |   5 +-
- 4 files changed, 228 insertions(+), 2 deletions(-)
+ 4 files changed, 256 insertions(+), 2 deletions(-)
  create mode 100644 tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
 
 diff --git a/cmake/modules/FindFFMPEG.cmake b/cmake/modules/FindFFMPEG.cmake
-index 2ef6a53a126e9..e1d8c701cac95 100644
+index ddddab1e77ba4..043a5d984fca3 100644
 --- a/cmake/modules/FindFFMPEG.cmake
 +++ b/cmake/modules/FindFFMPEG.cmake
-@@ -222,6 +222,9 @@ macro(buildFFMPEG)
+@@ -207,6 +207,9 @@ macro(buildFFMPEG)
                        COMMAND ${CMAKE_COMMAND} -E copy
                        ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch
                        <SOURCE_DIR>
@@ -36,12 +36,40 @@ index 2ef6a53a126e9..e1d8c701cac95 100644
      if(NOT DISABLE_FFMPEG_SOURCE_PLUGINS)
 diff --git a/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch b/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
 new file mode 100644
-index 0000000000000..6cb28b6be0344
+index 0000000000000..1c975a5b3c015
 --- /dev/null
 +++ b/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
-@@ -0,0 +1,221 @@
+@@ -0,0 +1,249 @@
++From 72f8c3376be3fe77f17a3c3b27eff1326895250f Mon Sep 17 00:00:00 2001
++From: Dom Cobley <popcornmix@gmail.com>
++Date: Tue, 3 Nov 2026 16:53:22 +0000
++Subject: [PATCH] swscale/yuv2rgb: write the last pixel of odd width rows
++
++The C YUV420P/YUV422P/YUVA420P to RGB converters process each row in
++blocks of 8, 4 and 2 pixels, so for an odd output width the final
++pixel of every row was never written and kept whatever was in the
++destination buffer.
++
++The unscaled path selection only rejects odd heights, and the ARM and
++AArch64 NEON versions require widths divisible by 16, so on those
++platforms odd widths always reach this code. x86 SSSE3 rounds the row
++up to 8 pixels and so is unaffected when the destination stride has
++room for that.
++
++Add a single pixel stage after the 2 pixel stage. The dithered formats
++use the dither matrix column of the final pixel, and packed RGB4/BGR4
++put it in the high nibble, which is the first pixel of the byte.
++
++Add FATE tests at an odd width for output formats which have no SIMD
++version.
++
++Signed-off-by: Dom Cobley <popcornmix@gmail.com>
++---
++ libswscale/yuv2rgb.c | 99 ++++++++++++++++++++++++++++++++++++++++++++
++ 1 file changed, 99 insertions(+)
++
 +diff --git a/libswscale/yuv2rgb.c b/libswscale/yuv2rgb.c
-+index a430a110db7..042cc1cc58f 100644
++index bb15ab1f77..37ff1b140e 100644
 +--- a/libswscale/yuv2rgb.c
 ++++ b/libswscale/yuv2rgb.c
 +@@ -78,6 +78,10 @@ const int *sws_getCoefficients(int colorspace)
@@ -262,10 +290,10 @@ index 0000000000000..6cb28b6be0344
 +     const uint8_t *d128 = ff_dither_8x8_220[yd & 7];
 +     char out_1 = 0, out_2 = 0;
 diff --git a/tools/depends/target/ffmpeg/CMakeLists.txt b/tools/depends/target/ffmpeg/CMakeLists.txt
-index 44f92e795ba9f..32dcfb1e6dfe3 100644
+index 24bc718dbf26d..e900e7322e2d2 100644
 --- a/tools/depends/target/ffmpeg/CMakeLists.txt
 +++ b/tools/depends/target/ffmpeg/CMakeLists.txt
-@@ -165,6 +165,7 @@ else()
+@@ -160,6 +160,7 @@ else()
    set(sourceplugin_patch PATCH_COMMAND patch -p1 -i <SOURCE_DIR>/002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch)
  endif()
  list(APPEND sourceplugin_patch COMMAND patch -p1 -i <SOURCE_DIR>/008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch)
