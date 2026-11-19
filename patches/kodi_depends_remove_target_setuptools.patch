@@ -1,0 +1,106 @@
+From fa2d0ce76f08063e5f674c06f916e9a1e77d5f2c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20P=C3=A9ron?= <peron.clem@gmail.com>
+Date: Mon, 16 Nov 2026 14:02:45 +0100
+Subject: [PATCH 1/2] [depends] Remove the target setuptools
+
+Installing it with pip uninstalled the native setuptools, so Pillow and
+PyCryptodome were built with it instead of the patched native one. Nothing
+uses it at run time: Kodi gives add-ons its own pkg_resources.
+
+Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>
+---
+ tools/depends/target/Makefile                 |  6 ++---
+ .../target/pythonmodule-setuptools/Makefile   | 23 -------------------
+ .../PYTHONMODULE-SETUPTOOLS-VERSION           |  4 ----
+ 3 files changed, 2 insertions(+), 31 deletions(-)
+ delete mode 100644 tools/depends/target/pythonmodule-setuptools/Makefile
+ delete mode 100644 tools/depends/target/pythonmodule-setuptools/PYTHONMODULE-SETUPTOOLS-VERSION
+
+diff --git a/tools/depends/target/Makefile b/tools/depends/target/Makefile
+index bc82c90780c90..204eddde638d3 100644
+--- a/tools/depends/target/Makefile
++++ b/tools/depends/target/Makefile
+@@ -31,7 +31,6 @@ DEPENDS = \
+   python3 \
+   pythonmodule-pil \
+   pythonmodule-pycryptodome \
+-  pythonmodule-setuptools \
+   sqlite3 \
+   tinyxml \
+   xz
+@@ -182,9 +181,8 @@ mesa: libdrm $(MESA_DEPS) $(ZLIB)
+ nettle: gmp
+ openssl: $(ZLIB)
+ python3: expat gettext libxml2 sqlite3 openssl libffi bzip2 xz $(ICONV)
+-pythonmodule-pil: bzip2 $(PYMODULE_DEPS) $(ZLIB) libjpeg-turbo libpng freetype2 python3 pythonmodule-setuptools
+-pythonmodule-pycryptodome: $(PYMODULE_DEPS) python3 pythonmodule-setuptools
+-pythonmodule-setuptools: $(PYMODULE_DEPS) python3
++pythonmodule-pil: bzip2 $(PYMODULE_DEPS) $(ZLIB) libjpeg-turbo libpng freetype2 python3
++pythonmodule-pycryptodome: $(PYMODULE_DEPS) python3
+ samba-gplv3: gnutls $(ZLIB)
+ taglib: utf8-cpp $(ZLIB)
+ wayland: expat libffi
+diff --git a/tools/depends/target/pythonmodule-setuptools/Makefile b/tools/depends/target/pythonmodule-setuptools/Makefile
+deleted file mode 100644
+index 1fcd06f2a5b6f..0000000000000
+--- a/tools/depends/target/pythonmodule-setuptools/Makefile
++++ /dev/null
+@@ -1,23 +0,0 @@
+-include ../../Makefile.include PYTHONMODULE-SETUPTOOLS-VERSION ../../download-files.include
+-DEPS= ../../Makefile.include Makefile PYTHONMODULE-SETUPTOOLS-VERSION ../../download-files.include
+-
+-LIBDYLIB=$(PLATFORM)/dist/$(LIBNAME)-$(VERSION)-py$(PYTHON_VERSION).egg
+-
+-all: .installed-$(PLATFORM)
+-
+-.configured-$(PLATFORM): $(DEPS) | $(TARBALLS_LOCATION)/$(ARCHIVE).$(HASH_TYPE)
+-	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
+-	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
+-	touch $@
+-
+-.installed-$(PLATFORM): .configured-$(PLATFORM)
+-	cd $(PLATFORM); PYTHONPATH="$(PYTHON_SITE_PKG)" $(NATIVEPREFIX)/bin/python3 -m pip install --no-deps --no-build-isolation --prefix=$(PREFIX) .
+-	find $(PYTHON_SITE_PKG)/*setuptools* -type f -name "*.exe" -exec rm -f {} \;
+-	touch $@
+-
+-clean:
+-	$(MAKE) -C $(PLATFORM) clean
+-	rm -f .installed-$(PLATFORM) .configured-$(PLATFORM)
+-
+-distclean::
+-	rm -rf $(PLATFORM) .installed-$(PLATFORM) .configured-$(PLATFORM)
+diff --git a/tools/depends/target/pythonmodule-setuptools/PYTHONMODULE-SETUPTOOLS-VERSION b/tools/depends/target/pythonmodule-setuptools/PYTHONMODULE-SETUPTOOLS-VERSION
+deleted file mode 100644
+index 9279d1a8a46ca..0000000000000
+--- a/tools/depends/target/pythonmodule-setuptools/PYTHONMODULE-SETUPTOOLS-VERSION
++++ /dev/null
+@@ -1,4 +0,0 @@
+-LIBNAME=setuptools
+-VERSION=80.9.0
+-ARCHIVE=$(LIBNAME)-$(VERSION).tar.gz
+-SHA512=36eb1f219d29c6b9e135936bde2001ad70a971c8069cd0175d3a5325b450e6843a903d3f70043c9f534768ebeab8ab0c544b8f44456555d333f1ed72daa5c18b
+
+From c81546e08f56d0fa583fb0556d1f640595955b84 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Cl=C3=A9ment=20P=C3=A9ron?= <peron.clem@gmail.com>
+Date: Mon, 16 Nov 2026 14:02:45 +0100
+Subject: [PATCH 2/2] [depends][python3] Do not install pip's installer and the
+ Tk tools
+
+Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>
+---
+ tools/depends/target/python3/Makefile | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/tools/depends/target/python3/Makefile b/tools/depends/target/python3/Makefile
+index ba5391c8ea768..3a658b7ef2deb 100644
+--- a/tools/depends/target/python3/Makefile
++++ b/tools/depends/target/python3/Makefile
+@@ -183,6 +183,8 @@ $(LIBDYLIB): .configured-$(PLATFORM)
+ 	$(MAKE) -C $(PLATFORM) $(HOSTPLATFORM) install -j1
+ 	find $(PREFIX)/lib/python$(PYTHON_VERSION) -type f -name "*.pyc" -delete
+ 	find $(PREFIX)/lib/python$(PYTHON_VERSION) -type d -name "config-$(PYTHON_VERSION)-*" -exec rm -r {} +
++# pip's installer, venv and the Tk tools cannot be used with the embedded interpreter
++	cd $(PREFIX)/lib/python$(PYTHON_VERSION); rm -rf ensurepip idlelib tkinter turtle.py turtledemo venv
+ 	touch $(LIBDYLIB)
+ 	touch $@
+ 

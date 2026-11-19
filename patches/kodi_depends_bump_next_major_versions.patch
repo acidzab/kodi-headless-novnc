@@ -1,4 +1,4 @@
-From 45c7ebe2cce7b62c085bd2d58d1e760dc7452582 Mon Sep 17 00:00:00 2001
+From 3a94eb5987dc80e71e4f2427f5494b22d67e70e4 Mon Sep 17 00:00:00 2001
 From: acidzab
 Date: Wed, 18 Nov 2026 20:36:13 +0100
 Subject: [PATCH] [depends] Bump major versions of native and target depends
@@ -13,35 +13,37 @@ The tag predates the PR base, so these files were adapted:
 - libnfs Makefile: same changes as the PR, without the wasm patches
   that are only on master
 ---
- cmake/modules/FindNFS.cmake                   |  5 +---
- .../autoconf-archive/AUTOCONF-ARCHIVE-VERSION |  4 ++--
- tools/depends/native/libffi/Makefile          |  4 ++--
+ cmake/modules/FindNFS.cmake                   |  5 +--
+ .../autoconf-archive/AUTOCONF-ARCHIVE-VERSION |  4 +-
+ tools/depends/native/libffi/Makefile          |  4 +-
  tools/depends/native/pkgconf/CMakeLists.txt   |  1 -
- tools/depends/native/pkgconf/Makefile         |  3 +--
- tools/depends/native/pkgconf/PKGCONF-VERSION  |  4 ++--
- tools/depends/target/dav1d/DAV1D-VERSION      |  4 ++--
- .../target/fontconfig/FONTCONFIG-VERSION      |  4 ++--
- tools/depends/target/gettext/GETTEXT-VERSION  |  4 ++--
- tools/depends/target/gettext/Makefile         |  2 +-
- .../depends/target/harfbuzz/HARFBUZZ-VERSION  |  4 ++--
- .../depends/target/libevdev/LIBEVDEV-VERSION  |  4 ++++
- tools/depends/target/libevdev/Makefile        | 12 ++--------
- tools/depends/target/libffi/LIBFFI-VERSION    |  4 ++--
- .../target/libnfs/01-MSUWP-compat.patch       | 11 ---------
- tools/depends/target/libnfs/LIBNFS-VERSION    |  6 ++---
- tools/depends/target/libnfs/Makefile          |  7 +++---
- tools/depends/target/libudev/LIBUDEV-VERSION  |  4 ++++
- tools/depends/target/libudev/Makefile         | 15 ++++--------
- tools/depends/target/libuuid/LIBUUID-VERSION  |  4 ++++
- tools/depends/target/libuuid/Makefile         | 12 ++--------
- tools/depends/target/mtdev/MTDEV-VERSION      |  4 ++++
- tools/depends/target/mtdev/Makefile           | 12 ++--------
- .../sqlite3/001-Disable-sqlite3bin.patch      | 16 -------------
- tools/depends/target/sqlite3/Makefile         | 18 +++++++--------
- tools/depends/target/sqlite3/SQLITE3-VERSION  |  4 ++--
- tools/depends/target/sqlite3/sqlite3.c.patch  | 23 +++++++++----------
- tools/depends/target/utfcpp/UTFCPP-VERSION    |  4 ++--
- 28 files changed, 76 insertions(+), 123 deletions(-)
+ tools/depends/native/pkgconf/Makefile         |  3 +-
+ tools/depends/native/pkgconf/PKGCONF-VERSION  |  4 +-
+ tools/depends/target/dav1d/DAV1D-VERSION      |  4 +-
+ .../target/fontconfig/FONTCONFIG-VERSION      |  4 +-
+ .../gettext/01-wasm-getlocalename_l.patch     | 42 +++++++++++++++++++
+ tools/depends/target/gettext/GETTEXT-VERSION  |  4 +-
+ tools/depends/target/gettext/Makefile         |  9 +++-
+ .../depends/target/harfbuzz/HARFBUZZ-VERSION  |  4 +-
+ .../depends/target/libevdev/LIBEVDEV-VERSION  |  4 ++
+ tools/depends/target/libevdev/Makefile        | 12 +-----
+ tools/depends/target/libffi/LIBFFI-VERSION    |  4 +-
+ .../target/libnfs/01-MSUWP-compat.patch       | 11 -----
+ tools/depends/target/libnfs/LIBNFS-VERSION    |  6 +--
+ tools/depends/target/libnfs/Makefile          |  7 ++--
+ tools/depends/target/libudev/LIBUDEV-VERSION  |  4 ++
+ tools/depends/target/libudev/Makefile         | 15 +++----
+ tools/depends/target/libuuid/LIBUUID-VERSION  |  4 ++
+ tools/depends/target/libuuid/Makefile         | 12 +-----
+ tools/depends/target/mtdev/MTDEV-VERSION      |  4 ++
+ tools/depends/target/mtdev/Makefile           | 12 +-----
+ .../sqlite3/001-Disable-sqlite3bin.patch      | 16 -------
+ tools/depends/target/sqlite3/Makefile         | 18 ++++----
+ tools/depends/target/sqlite3/SQLITE3-VERSION  |  4 +-
+ tools/depends/target/sqlite3/sqlite3.c.patch  | 23 +++++-----
+ tools/depends/target/utfcpp/UTFCPP-VERSION    |  4 +-
+ 29 files changed, 125 insertions(+), 123 deletions(-)
+ create mode 100644 tools/depends/target/gettext/01-wasm-getlocalename_l.patch
  create mode 100644 tools/depends/target/libevdev/LIBEVDEV-VERSION
  delete mode 100644 tools/depends/target/libnfs/01-MSUWP-compat.patch
  create mode 100644 tools/depends/target/libudev/LIBUDEV-VERSION
@@ -159,6 +161,54 @@ index 66cae129dd..a95ec81e0a 100644
 -SHA512=c3e769f74dc21093ada48084bddaca1ab525b1c4f04c5c11f067b69346fab153cad95de8b8238b20b02e8b9679c314bf2e0e9c4218511d8fe0f1826e4c4c6a24
 +SHA512=53b2759536963c649ef3950a94eb9971e9f2e3b96d8cc4e3265d4c3c2d14cb5cffa528435f04d5b22d0f43534e24e11c6e05822c933c77a58cb3a70dad2608d5
  BYPRODUCT=libfontconfig.a
+diff --git a/tools/depends/target/gettext/01-wasm-getlocalename_l.patch b/tools/depends/target/gettext/01-wasm-getlocalename_l.patch
+new file mode 100644
+index 0000000000..43d09798ca
+--- /dev/null
++++ b/tools/depends/target/gettext/01-wasm-getlocalename_l.patch
+@@ -0,0 +1,42 @@
++diff -ruN a/gettext-runtime/gnulib-lib/getlocalename_l-unsafe.c b/gettext-runtime/gnulib-lib/getlocalename_l-unsafe.c
++--- a/gettext-runtime/gnulib-lib/getlocalename_l-unsafe.c
+++++ b/gettext-runtime/gnulib-lib/getlocalename_l-unsafe.c
++@@ -34,7 +34,7 @@
++ #endif
++ #include "setlocale_null.h"
++ 
++-#if (__GLIBC__ >= 2 && !defined __UCLIBC__) || (defined __linux__ && HAVE_LANGINFO_H) || defined __CYGWIN__
+++#if (__GLIBC__ >= 2 && !defined __UCLIBC__) || ((defined __linux__ || defined __EMSCRIPTEN__) && HAVE_LANGINFO_H) || defined __CYGWIN__
++ # include <langinfo.h>
++ #endif
++ #if defined __sun
++@@ -480,7 +480,7 @@
++            nl_langinfo_l (_NL_LOCALE_NAME (category), locale).  */
++         name = locale->__names[category];
++       return (struct string_with_storage) { name, STORAGE_OBJECT };
++-#elif defined __linux__ && HAVE_LANGINFO_H && defined NL_LOCALE_NAME
+++#elif (defined __linux__ || defined __EMSCRIPTEN__) && HAVE_LANGINFO_H && defined NL_LOCALE_NAME
++       /* musl libc */
++       const char *name = nl_langinfo_l (NL_LOCALE_NAME (category), locale);
++       return (struct string_with_storage) { name, STORAGE_OBJECT };
++diff -ruN a/gettext-runtime/intl/gnulib-lib/getlocalename_l-unsafe.c b/gettext-runtime/intl/gnulib-lib/getlocalename_l-unsafe.c
++--- a/gettext-runtime/intl/gnulib-lib/getlocalename_l-unsafe.c
+++++ b/gettext-runtime/intl/gnulib-lib/getlocalename_l-unsafe.c
++@@ -34,7 +34,7 @@
++ #endif
++ #include "setlocale_null.h"
++ 
++-#if (__GLIBC__ >= 2 && !defined __UCLIBC__) || (defined __linux__ && HAVE_LANGINFO_H) || defined __CYGWIN__
+++#if (__GLIBC__ >= 2 && !defined __UCLIBC__) || ((defined __linux__ || defined __EMSCRIPTEN__) && HAVE_LANGINFO_H) || defined __CYGWIN__
++ # include <langinfo.h>
++ #endif
++ #if defined __sun
++@@ -480,7 +480,7 @@
++            nl_langinfo_l (_NL_LOCALE_NAME (category), locale).  */
++         name = locale->__names[category];
++       return (struct string_with_storage) { name, STORAGE_OBJECT };
++-#elif defined __linux__ && HAVE_LANGINFO_H && defined NL_LOCALE_NAME
+++#elif (defined __linux__ || defined __EMSCRIPTEN__) && HAVE_LANGINFO_H && defined NL_LOCALE_NAME
++       /* musl libc */
++       const char *name = nl_langinfo_l (NL_LOCALE_NAME (category), locale);
++       return (struct string_with_storage) { name, STORAGE_OBJECT };
 diff --git a/tools/depends/target/gettext/GETTEXT-VERSION b/tools/depends/target/gettext/GETTEXT-VERSION
 index 9aa25a750c..3c5cea3ddb 100644
 --- a/tools/depends/target/gettext/GETTEXT-VERSION
@@ -171,10 +221,19 @@ index 9aa25a750c..3c5cea3ddb 100644
 -SHA512=ad2fa2f69be996a637e9b51e8941a39e10050060245dcec1fe75c15b68d0ff973043c87b77e4e2830e407e3bdd040b578f8e24fd05bba43adb94eaee34001aa5
 +SHA512=664c3b1985cb7d1e7ed443e036a6c7f8c1f47354720d13c2db2c2cf8a85136d0ffc2cc920dce1240d688f706653f647749ce29f69eb0bb659e043b499f9c47eb
 diff --git a/tools/depends/target/gettext/Makefile b/tools/depends/target/gettext/Makefile
-index 4de2ed81b3..3dda96527f 100644
+index 4de2ed81b3..d4bada04ba 100644
 --- a/tools/depends/target/gettext/Makefile
 +++ b/tools/depends/target/gettext/Makefile
-@@ -6,7 +6,7 @@ CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) build-aux/; \
+@@ -1,12 +1,16 @@
+ include ../../Makefile.include GETTEXT-VERSION ../../download-files.include
+ DEPS = ../../Makefile.include Makefile GETTEXT-VERSION ../../download-files.include
+ 
++ifeq ($(OS),wasm)
++DEPS+= 01-wasm-getlocalename_l.patch
++endif
++
+ # configuration settings
+ CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) build-aux/; \
      ./configure --prefix=$(PREFIX) \
      --disable-csharp --disable-native-java --disable-java --without-emacs \
      --disable-libasprintf --disable-openmp \
@@ -183,6 +242,16 @@ index 4de2ed81b3..3dda96527f 100644
      --with-included-glib \
      --with-included-libcroco \
      --with-included-libxml \
+@@ -20,6 +24,9 @@ all: .installed-$(PLATFORM)
+ .configured-$(PLATFORM): $(DEPS) | $(TARBALLS_LOCATION)/$(ARCHIVE).$(HASH_TYPE)
+ 	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
+ 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
++ifeq ($(OS),wasm)
++	cd $(PLATFORM); patch -p1 -i ../01-wasm-getlocalename_l.patch
++endif
+ 	cd $(PLATFORM); $(CONFIGURE)
+ 	touch $@
+ 
 diff --git a/tools/depends/target/harfbuzz/HARFBUZZ-VERSION b/tools/depends/target/harfbuzz/HARFBUZZ-VERSION
 index 26f96dd21f..f4586ab90c 100644
 --- a/tools/depends/target/harfbuzz/HARFBUZZ-VERSION

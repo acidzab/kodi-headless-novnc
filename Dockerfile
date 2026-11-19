@@ -50,9 +50,9 @@ RUN git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git
 # sqlite3, libxml2 and the native tools). Only the depends patches are copied,
 # so changes to the other patches keep this stage cached. They touch the same
 # files, so they are applied one at a time, in order.
-COPY patches/kodi_depends_bump_minor_versions.patch patches/kodi_depends_bump_next_major_versions.patch /patches/
+COPY patches/kodi_depends_bump_minor_versions.patch patches/kodi_depends_bump_next_major_versions.patch patches/kodi_depends_remove_target_setuptools.patch /patches/
 RUN cd /tmp/xbmc \
- && for p in /patches/kodi_depends_bump_minor_versions.patch /patches/kodi_depends_bump_next_major_versions.patch; do \
+ && for p in /patches/kodi_depends_bump_minor_versions.patch /patches/kodi_depends_bump_next_major_versions.patch /patches/kodi_depends_remove_target_setuptools.patch; do \
       git apply --ignore-whitespace "$p" || exit 1; \
     done
 
