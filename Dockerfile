@@ -22,20 +22,29 @@ ARG DEPENDS_PREFIX="/opt/kodi-deps"
 ARG CFLAGS=
 ARG CXXFLAGS=
 
-# Host toolchain to bootstrap depends (it builds its own autotools, cmake,
-# meson, ninja, pkg-config, python3, swig, ...), plus the X11/GL development
-# files: depends does not build them, its linux-system-x11-libs and
-# linux-system-gl-libs targets link the system .pc files into the prefix.
-# default-jre-headless runs groovy for the Python bindings in the Kodi stage.
-# Host packages the native tools expect, as on the Jenkins builders:
-# libcurl4-openssl-dev for native cmake (bootstrapped with --system-curl),
-# python3 for native heimdal's configure.
+# Host packages, only what depends and Kodi's cmake need from the system
+# (depends builds its own autotools, gettext, cmake, meson, ninja, nasm,
+# pkgconf, bison, python3, swig, zlib, ...):
+#   gcc g++ make patch perl            toolchain; OpenSSL/autotools; Makefile patches
+#   git curl ca-certificates           clone + git apply; tarball downloads
+#   tar gzip bzip2 xz-utils unzip      tarballs; unzip for Pillow's egg
+#   gawk flex gperf                    as in docs/README.Android.md (heimdal,
+#                                      fontconfig)
+#   python3                            native heimdal's configure
+#   libcurl4-openssl-dev               native cmake (bootstrapped --system-curl)
+#   libx11-dev libxext-dev             FindX (x11, xext)
+#   libxrandr-dev                      FindXRandR
+#   libgl-dev libegl-dev               FindOpenGl, FindEGL, FindGLX (libgl-dev
+#                                      pulls libglx-dev with glx.pc)
+# depends does not build X11/GL: its linux-system-x11-libs and
+# linux-system-gl-libs targets link the system .pc files into the prefix
+# (links to .pc files of packages not installed here are left dangling and
+# only matter for mesa/libva, which are not built).
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     bzip2 \
     ca-certificates \
     curl \
-    default-jre-headless \
     flex \
     g++ \
     gawk \
@@ -45,39 +54,17 @@ RUN apt-get update -y \
     gzip \
     libcurl4-openssl-dev \
     libegl-dev \
-    libgbm-dev \
     libgl-dev \
-    libglu1-mesa-dev \
     libx11-dev \
-    libx11-xcb-dev \
-    libxcb-dri2-0-dev \
-    libxcb-dri3-dev \
-    libxcb-glx0-dev \
-    libxcb-present-dev \
-    libxcb-randr0-dev \
-    libxcb-render0-dev \
-    libxcb-shape0-dev \
-    libxcb-sync-dev \
-    libxcb-xfixes0-dev \
-    libxcb1-dev \
-    libxdamage-dev \
     libxext-dev \
-    libxfixes-dev \
-    libxmu-dev \
     libxrandr-dev \
-    libxrender-dev \
-    libxshmfence-dev \
-    libxt-dev \
-    libxxf86vm-dev \
     make \
     patch \
     perl \
     python3 \
     tar \
     unzip \
-    x11proto-dev \
     xz-utils \
-    zip \
   && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git /tmp/xbmc
