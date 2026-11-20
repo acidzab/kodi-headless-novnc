@@ -27,6 +27,9 @@ ARG CXXFLAGS=
 # files: depends does not build them, its linux-system-x11-libs and
 # linux-system-gl-libs targets link the system .pc files into the prefix.
 # default-jre-headless runs groovy for the Python bindings in the Kodi stage.
+# Host packages the native tools expect, as on the Jenkins builders:
+# libcurl4-openssl-dev for native cmake (bootstrapped with --system-curl),
+# python3 for native heimdal's configure.
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     bzip2 \
@@ -40,6 +43,7 @@ RUN apt-get update -y \
     git \
     gperf \
     gzip \
+    libcurl4-openssl-dev \
     libegl-dev \
     libgbm-dev \
     libgl-dev \
@@ -68,6 +72,7 @@ RUN apt-get update -y \
     make \
     patch \
     perl \
+    python3 \
     tar \
     unzip \
     x11proto-dev \
@@ -89,10 +94,13 @@ RUN cd /tmp/xbmc \
 # below is explicit, so nothing wayland/gbm is built, and the Kodi stage sets
 # CORE_PLATFORM_NAME=x11. VAAPI/VDPAU are off in Kodi, so ffmpeg does not need
 # them either (on x86 they are depends' ffmpeg default).
+# --build too: an armv7 container on an arm64 host reports aarch64 to
+# config.guess, and depends would then think it is cross compiling.
 RUN cd /tmp/xbmc/tools/depends \
  && ./bootstrap \
  && ./configure \
       --prefix=${DEPENDS_PREFIX} \
+      --build=$(gcc -dumpmachine) \
       --host=$(gcc -dumpmachine) \
       --with-toolchain=/usr \
       --with-rendersystem=gl \
