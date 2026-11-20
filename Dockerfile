@@ -50,9 +50,9 @@ RUN git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git
 # sqlite3, libxml2 and the native tools). Only the depends patches are copied,
 # so changes to the other patches keep this stage cached. They touch the same
 # files, so they are applied one at a time, in order.
-COPY patches/kodi_depends_bump_minor_versions.patch patches/kodi_depends_bump_next_major_versions.patch patches/kodi_depends_remove_target_setuptools.patch /patches/
+COPY patches/depends/ /patches/depends/
 RUN cd /tmp/xbmc \
- && for p in /patches/kodi_depends_bump_minor_versions.patch /patches/kodi_depends_bump_next_major_versions.patch /patches/kodi_depends_remove_target_setuptools.patch; do \
+ && for p in /patches/depends/*.patch; do \
       git apply --ignore-whitespace "$p" || exit 1; \
     done
 
@@ -121,7 +121,10 @@ RUN PYTHON_VERSION=$(sed -n 's/^VERSION=\([0-9]*\.[0-9]*\)\..*/\1/p' /tmp/xbmc/t
  && (${N}/bin/python3 -O -m compileall -q ${L} || true) \
  && cp -a ${L} /out/kodi-python/lib/python${PYTHON_VERSION}
 
-FROM $BASE_IMAGE AS build
+# ============================================================================
+# Kodi's internal libraries (ENABLE_INTERNAL_*), built in their own stage.
+# ============================================================================
+FROM $BASE_IMAGE AS internal-deps
 
 ARG DEBIAN_FRONTEND="noninteractive"
 
@@ -219,12 +222,15 @@ ARG KODI_BRANCH="master"
 RUN cd /tmp \
  && git clone --depth=1 --branch ${KODI_BRANCH} https://github.com/xbmc/xbmc.git
 
-# Apply AudioLibrary Api Patch
-COPY patches/ /patches/
-# One at a time, in name order: several patches touch the same files and a
-# single "git apply a.patch b.patch" checks each one against the clean tree.
+# Only the patches the libraries need (depends bumps, ffmpeg): changing a
+# Kodi-only patch keeps this whole stage cached. One at a time, in name order:
+# several patches touch the same files and a single "git apply a.patch
+# b.patch" checks each one against the clean tree.
+COPY patches/depends/ /patches/depends/
+COPY patches/ffmpeg/ /patches/ffmpeg/
 RUN cd /tmp/xbmc \
- && for p in /patches/*.patch; do \
+ && for p in /patches/depends/*.patch /patches/ffmpeg/*.patch; do \
+      [ -e "$p" ] || continue; \
       git apply --ignore-whitespace "$p" || exit 1; \
     done
 
@@ -232,27 +238,15 @@ ARG CFLAGS=
 ARG CXXFLAGS=
 ARG WITH_CPU=
 
-# Build Kodi
-# USE_INTERNAL_LIBS=ON makes every ENABLE_INTERNAL_* "dependent_option" default
-# to ON (ASS, CURL(+brotli, nghttp2), DAV1D, EXIV2, FLATBUFFERS, FMT, SPDLOG,
-# LIBDVD, LIBMICROHTTPD, LZO2, MARIADBCLIENT, NFS, NLOHMANNJSON, PCRE2, SWIG,
-# TAGLIB(+utfcpp), UDFREAD, XSLT); CROSSGUID is ON by default and
-# FFMPEG, FSTRCMP (plain option, OFF by default) and TINYXML2 (only declared as
-# dependent_option for depends/Windows builds, so USE_INTERNAL_LIBS does not
-# reach it on Linux) are set explicitly. FFMPEG is a plain option, hence the
-# explicit flag. Kodi downloads and builds them with ExternalProject and links
-# them statically into kodi.bin, so no RPATH / LD_LIBRARY_PATH is needed.
-# Only libs Kodi cannot build itself stay on apt: OpenSSL, zlib, sqlite3,
-# freetype, fribidi, harfbuzz, fontconfig, libxml2, tinyxml (v1), smbclient,
-# libplist, libcdio, gnutls (libmicrohttpd https), X11/GL/ALSA.
-# Python is the depends-built static libpython from /opt/kodi-deps. Its static
-# modules (expat, ffi, lzma, bz2, ssl, sqlite3, zlib) are not pulled in by
-# FindPython.cmake outside a depends build, so they are appended to the end of
-# the link line through CMAKE_CXX_STANDARD_LIBRARIES (static archives must come
-# after libpython.a). libintl.a: depends' python3 builds _locale against depends'
-# GNU gettext (its libintl.h renames gettext() to libintl_gettext()). -lgnutls is for the static libmicrohttpd (built with HTTPS;
-# Kodi's FindMicroHttpd has a "Todo: gnutls" and does not add it to the link).
-# Build notes:
+COPY kodi-cmake.sh /usr/local/bin/kodi-cmake
+RUN chmod 755 /usr/local/bin/kodi-cmake
+
+# Build every ENABLE_INTERNAL_* library (and the host tools: flatc, swig,
+# TexturePacker, JsonSchemaBuilder) before Kodi, as the Jenkins job builds
+# depends first. Kodi names each ExternalProject "build-<module>"
+# (cmake/scripts/common/ModuleHelpers.cmake), so the list is read from the
+# configured project instead of being hard-coded: a Kodi version that adds or
+# drops an internal library needs no change here.
 # - liblzo2-dev (and libpng/libgif/libjpeg): Kodi's internal TexturePacker is a
 #   *host* tool configured by its own sub-project, which does not see the
 #   internal lzo2 and needs the system one.
@@ -263,50 +257,40 @@ ARG WITH_CPU=
 #   disabled. It is applied ONLY to the build-libmicrohttpd target: MAKEFLAGS
 #   leaks into the environment, and libass runs a real autoreconf that breaks
 #   if AUTOCONF/ACLOCAL are ":".
-RUN mkdir -p /tmp/xbmc/build \
-  && cd /tmp/xbmc/build \
-  && CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" cmake ../. \
-    ${WITH_CPU} \
-    -DCMAKE_INSTALL_LIBDIR=/usr/lib \
-    -DCMAKE_INSTALL_PREFIX=/usr \
-    -DUSE_INTERNAL_LIBS=ON \
-    -DENABLE_INTERNAL_FFMPEG=ON \
-    -DENABLE_INTERNAL_TINYXML2=ON \
-    -DENABLE_INTERNAL_FSTRCMP=ON \
-    -DAPP_RENDER_SYSTEM=gl \
-    -DCORE_PLATFORM_NAME=x11 \
-    -DENABLE_AIRTUNES=OFF \
-    -DENABLE_ALSA=ON \
-    -DENABLE_AVAHI=OFF \
-    -DENABLE_BLUETOOTH=OFF \
-    -DENABLE_BLURAY=OFF \
-    -DENABLE_CAP=OFF \
-    -DENABLE_CEC=OFF \
-    -DENABLE_DBUS=OFF \
-    -DENABLE_DVDCSS=OFF \
-    -DENABLE_MARIADBCLIENT=ON \
-    -DENABLE_MYSQLCLIENT=OFF \
-    -DENABLE_EVENTCLIENTS=OFF \
-    -DENABLE_GLX=ON \
-    -DENABLE_LCMS2=OFF \
-    -DENABLE_LIBUSB=OFF \
-    -DENABLE_LIRCCLIENT=OFF \
-    -DENABLE_NFS=ON \
-    -DENABLE_OPTICAL=OFF \
-    -DENABLE_PULSEAUDIO=OFF \
-    -DENABLE_SNDIO=OFF \
-    -DENABLE_TESTING=OFF \
-    -DENABLE_UDEV=OFF \
-    -DENABLE_UPNP=OFF \
-    -DENABLE_VAAPI=OFF \
-    -DENABLE_VDPAU=OFF \
-    -DPYTHON_PATH=/opt/kodi-deps \
-    -DPYTHON_VER=$(cat /opt/kodi-deps/python-version) \
-    -DPython3_USE_STATIC_LIBS=ON \
-    -DCMAKE_CXX_STANDARD_LIBRARIES="/opt/kodi-deps/lib/libexpat.a /opt/kodi-deps/lib/libffi.a /opt/kodi-deps/lib/liblzma.a /opt/kodi-deps/lib/libbz2.a /opt/kodi-deps/lib/libintl.a -lssl -lcrypto -lsqlite3 -lgnutls -lz -ldl -lpthread -lutil -lrt -lm" \
- && MAKEFLAGS="ACLOCAL=: AUTOMAKE=: AUTOCONF=: AUTOHEADER=:" make -j $(nproc) build-libmicrohttpd \
- && make -j $(nproc) \
- && make DESTDIR=/tmp/kodi-build install
+RUN kodi-cmake \
+ && cd /tmp/xbmc/build \
+ && T=$(make help | sed -n 's/^\.\.\. \(build-[^ ]*\).*/\1/p' | sort -u) \
+ && test -n "${T}" \
+ && echo "internal targets:" ${T} \
+ && if echo "${T}" | grep -qx build-libmicrohttpd; then \
+      MAKEFLAGS="ACLOCAL=: AUTOMAKE=: AUTOCONF=: AUTOHEADER=:" make -j $(nproc) build-libmicrohttpd; \
+    fi \
+ && make -j $(nproc) ${T}
+
+# ============================================================================
+# Kodi itself, on top of the already built internal libraries.
+# ============================================================================
+FROM internal-deps AS build
+
+ARG CFLAGS=
+ARG CXXFLAGS=
+ARG WITH_CPU=
+
+# Kodi-only patches (patches/*.patch, not depends/ or ffmpeg/, which are
+# already applied), one at a time, in name order.
+COPY patches/ /patches/
+RUN cd /tmp/xbmc \
+ && for p in /patches/*.patch; do \
+      [ -e "$p" ] || continue; \
+      git apply --ignore-whitespace "$p" || exit 1; \
+    done
+
+# Same configure as the internal-deps stage (same script, same ARGs), so the
+# ExternalProject stamps in /tmp/xbmc/build are still valid and only Kodi is
+# compiled.
+RUN kodi-cmake \
+ && make -j $(nproc) -C /tmp/xbmc/build \
+ && make -C /tmp/xbmc/build DESTDIR=/tmp/kodi-build install
 
 # Install kodi-send and xbmcclient
 RUN install -Dm755 \
