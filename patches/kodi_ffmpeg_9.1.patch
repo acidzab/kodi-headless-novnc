@@ -1,0 +1,180 @@
+From 94d08d3371a3f6128aed3413329ea0e68a15f8a7 Mon Sep 17 00:00:00 2001
+From: Stephan Sundermann <stephansundermann@gmail.com>
+Date: Fri, 20 Nov 2026 19:04:26 +0100
+Subject: [PATCH] [depends][target] Update ffmpeg to 9.1
+
+Backport of xbmc/xbmc#30674 (both commits) onto 22.0rc2-Piers:
+- bump ffmpeg to 9.1 and drop the patches now upstream (007 zlib
+  detection, 009 swscale yuv2rgb odd width)
+- FFmpegImage: use stream group entries and the group's coded side
+  data for tile grids (AVStreamGroup.streams and the tile grid's
+  coded side data are deprecated in 9.1)
+
+The ICC profile hunk of the second commit is left out: that code is
+not in the Piers tag.
+---
+ cmake/modules/FindFFMPEG.cmake                | 14 ++++-----
+ .../001-ffmpeg-all-libpostproc-plugin.patch   |  2 +-
+ ...eg-windows-configure-detect-libdav1d.patch |  6 ++--
+ ...ffmpeg-windows-configure-detect-zlib.patch | 13 --------
+ tools/depends/target/ffmpeg/FFMPEG-VERSION    |  4 +--
+ xbmc/guilib/FFmpegImage.cpp                   | 30 +++++++++++++++----
+ 6 files changed, 37 insertions(+), 32 deletions(-)
+ delete mode 100644 tools/depends/target/ffmpeg/007-ffmpeg-windows-configure-detect-zlib.patch
+
+diff --git a/cmake/modules/FindFFMPEG.cmake b/cmake/modules/FindFFMPEG.cmake
+index ddddab1..f4a1998 100644
+--- a/cmake/modules/FindFFMPEG.cmake
++++ b/cmake/modules/FindFFMPEG.cmake
+@@ -299,13 +299,13 @@ else()
+   # have latest version to properly track rebuiling.
+   if(KODI_DEPENDSBUILD OR (WIN32 OR WINDOWS_STORE))
+     # required ffmpeg library versions - tools/depends/target/ffmpeg versions
+-    set(REQUIRED_FFMPEG_VERSION 9.0.2)
+-    set(_avutil_ver "=61.1.102")
+-    set(_avcodec_ver "=63.1.102")
+-    set(_avformat_ver "=63.1.102")
+-    set(_avfilter_ver "=12.1.102")
+-    set(_swscale_ver "=10.1.102")
+-    set(_swresample_ver "=7.1.102")
++    set(REQUIRED_FFMPEG_VERSION 9.1)
++    set(_avutil_ver "=61.19.100")
++    set(_avcodec_ver "=63.24.100")
++    set(_avformat_ver "=63.16.100")
++    set(_avfilter_ver "=12.8.100")
++    set(_swscale_ver "=10.5.100")
++    set(_swresample_ver "=7.6.100")
+     set(_postproc_ver "=59.1.100")
+   else()
+     # required ffmpeg library versions - minimum supported API compat versions
+diff --git a/tools/depends/target/ffmpeg/001-ffmpeg-all-libpostproc-plugin.patch b/tools/depends/target/ffmpeg/001-ffmpeg-all-libpostproc-plugin.patch
+index 9ebfc8c..06fa350 100644
+--- a/tools/depends/target/ffmpeg/001-ffmpeg-all-libpostproc-plugin.patch
++++ b/tools/depends/target/ffmpeg/001-ffmpeg-all-libpostproc-plugin.patch
+@@ -173,7 +173,7 @@ index 374bd5c151..0436370443 100755
+  swresample_suggest="libm libsoxr stdatomic"
+  swscale_deps="avutil"
+ @@ -7992,7 +7997,7 @@ void (^block)(void);
+- EOF
++ check_disable_warning_headers -Wno-unused-variable
+  
+  # add some linker flags
+ -check_ldflags -Wl,-rpath-link=:libswresample:libswscale:libavfilter:libavdevice:libavformat:libavcodec:libavutil
+diff --git a/tools/depends/target/ffmpeg/005-ffmpeg-windows-configure-detect-libdav1d.patch b/tools/depends/target/ffmpeg/005-ffmpeg-windows-configure-detect-libdav1d.patch
+index 1245969..108d45e 100644
+--- a/tools/depends/target/ffmpeg/005-ffmpeg-windows-configure-detect-libdav1d.patch
++++ b/tools/depends/target/ffmpeg/005-ffmpeg-windows-configure-detect-libdav1d.patch
+@@ -8,13 +8,13 @@ Subject: [PATCH] ffmpeg: windows: configure: detect libdav1d
+  1 file changed, 1 insertion(+), 1 deletion(-)
+ 
+ diff --git a/configure b/configure
+-index 4b0ddd9b11..189a8d0b60 100755
++index f5e1fbb71b..d611507760 100755
+ --- a/configure
+ +++ b/configure
+-@@ -7339,7 +7339,7 @@ enabled libbluray         && require_pkg_config libbluray libbluray libbluray/bl
+- enabled libbs2b           && require_pkg_config libbs2b libbs2b bs2b.h bs2b_open
++@@ -7239,7 +7239,7 @@ enabled libbs2b           && require_pkg_config libbs2b libbs2b bs2b.h bs2b_open
+  enabled libcaca           && require_pkg_config libcaca caca caca.h caca_create_canvas
+  enabled libcodec2         && require libcodec2 codec2/codec2.h codec2_create -lcodec2
++ enabled libcurl           && check_pkg_config libcurl "libcurl >= 7.88.0" curl/curl.h curl_easy_init
+ -enabled libdav1d          && require_pkg_config libdav1d "dav1d >= 1.0.0" "dav1d/dav1d.h" dav1d_version
+ +enabled libdav1d          && require libdav1d dav1d/dav1d.h dav1d_version -llibdav1d
+  enabled libdavs2          && require_pkg_config libdavs2 "davs2 >= 1.6.0" davs2.h davs2_decoder_open
+diff --git a/tools/depends/target/ffmpeg/007-ffmpeg-windows-configure-detect-zlib.patch b/tools/depends/target/ffmpeg/007-ffmpeg-windows-configure-detect-zlib.patch
+deleted file mode 100644
+index f222f23..0000000
+--- a/tools/depends/target/ffmpeg/007-ffmpeg-windows-configure-detect-zlib.patch
++++ /dev/null
+@@ -1,13 +0,0 @@
+-diff --git a/configure b/configure
+-index a0eed36abf..467c79a7cb 100755
+---- a/configure
+-+++ b/configure
+-@@ -4939,7 +4939,7 @@ msvc_common_flags(){
+-             -mthumb)              ;;
+-             -march=*)             ;;
+-             -mfp16-format=*)      ;;
+--            -lz)                  echo zlib.lib ;;
+-+            -lz)                  echo z.lib ;;
+-             -lx264)               echo libx264.lib ;;
+-             -lstdc++)             ;;
+-             -l*)                  echo ${flag#-l}.lib ;;
+diff --git a/tools/depends/target/ffmpeg/FFMPEG-VERSION b/tools/depends/target/ffmpeg/FFMPEG-VERSION
+index dbee714..b06efa2 100644
+--- a/tools/depends/target/ffmpeg/FFMPEG-VERSION
++++ b/tools/depends/target/ffmpeg/FFMPEG-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=ffmpeg
+-VERSION=9.0.2
++VERSION=9.1
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.xz
+-SHA512=7756f8434371b9bc1d01cf578bf49014e058b0869c3c1df05030f5f4035f1def64b2e7dba3cf340da4dc8dd9239dd5f894530c9e45793ac27876807079aa546a
++SHA512=9f1578270ebe924fad8309d254b6adbef9a710d0d5a8a78628b94ef01ae0f8ce9286a780901d9aa37f663d26c685acffaa8f4c2d6ffce956a06b6a0928d2cf96
+diff --git a/xbmc/guilib/FFmpegImage.cpp b/xbmc/guilib/FFmpegImage.cpp
+index abc3baa..f70daf8 100644
+--- a/xbmc/guilib/FFmpegImage.cpp
++++ b/xbmc/guilib/FFmpegImage.cpp
+@@ -182,6 +182,17 @@ bool CopyTile(AVFrame* canvas, const AVFrame* tile, int x, int y)
+   }
+   return true;
+ }
++
++const AVStream* GetGroupStream(const AVStreamGroup* group, unsigned int idx)
++{
++#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(63, 10, 100)
++  if (idx >= group->nb_entries || group->entries[idx]->type != AV_STREAM_GROUP_ENTRY_STREAM)
++    return nullptr;
++  return group->entries[idx]->stream;
++#else
++  return idx < group->nb_streams ? group->streams[idx] : nullptr;
++#endif
++}
+ } // namespace
+ 
+ Frame::Frame(const Frame& src) :
+@@ -629,10 +640,9 @@ AVFrame* CFFmpegImage::ExtractTileGridFrame()
+   // FFmpeg 7.x gives a tile's number here, not its stream's, so a tile used twice runs past them
+   for (unsigned int i = 0; i < grid->nb_tiles; ++i)
+   {
+-    if (grid->offsets[i].idx >= m_tileGrid->nb_streams)
++    if (!GetGroupStream(m_tileGrid, grid->offsets[i].idx))
+     {
+-      CLog::LogF(LOGERROR, "Tile {} refers to stream {} of {}", i, grid->offsets[i].idx,
+-                 m_tileGrid->nb_streams);
++      CLog::LogF(LOGERROR, "Tile {} refers to missing stream {}", i, grid->offsets[i].idx);
+       return nullptr;
+     }
+   }
+@@ -649,7 +659,7 @@ AVFrame* CFFmpegImage::ExtractTileGridFrame()
+     // a tile may be placed more than once
+     for (unsigned int i = 0; !failed && i < grid->nb_tiles; ++i)
+     {
+-      const AVStream* stream = m_tileGrid->streams[grid->offsets[i].idx];
++      const AVStream* stream = GetGroupStream(m_tileGrid, grid->offsets[i].idx);
+       if (stream->index != pkt->stream_index)
+         continue;
+ 
+@@ -691,9 +701,17 @@ AVFrame* CFFmpegImage::ExtractTileGridFrame()
+   }
+ 
+ #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(61, 9, 100)
++#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(63, 10, 100)
++  const AVPacketSideData* gridSideData{m_tileGrid->coded_side_data};
++  const int gridSideDataCount{m_tileGrid->nb_coded_side_data};
++#else
++  const AVPacketSideData* gridSideData{grid->coded_side_data};
++  const int gridSideDataCount{grid->nb_coded_side_data};
++#endif
++
+   // irot/imir of a grid apply to the grid, not its tiles
+-  const AVPacketSideData* sideData{av_packet_side_data_get(
+-      grid->coded_side_data, grid->nb_coded_side_data, AV_PKT_DATA_DISPLAYMATRIX)};
++  const AVPacketSideData* sideData{
++      av_packet_side_data_get(gridSideData, gridSideDataCount, AV_PKT_DATA_DISPLAYMATRIX)};
+   AVFrameSideData* matrix{
+       sideData ? av_frame_new_side_data(canvas, AV_FRAME_DATA_DISPLAYMATRIX, sideData->size)
+                : nullptr};
+-- 
+2.56.0.windows.4
+
