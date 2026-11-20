@@ -22,6 +22,18 @@ ARG DEPENDS_PREFIX="/opt/kodi-deps"
 ARG CFLAGS=
 ARG CXXFLAGS=
 
+# An armv7 container on an arm64 host gets "aarch64" from uname -m, so
+# config.guess and OpenSSL's ./config pick 64-bit targets for a 32-bit gcc
+# (native OpenSSL came out as linux-aarch64 and failed every signature check).
+# With a 32-bit userland every RUN of this stage, and of the stages built
+# FROM it, runs under the linux32 personality (uname -m: armv8l); elsewhere
+# the wrapper only execs its arguments.
+RUN printf '%s\n' '#!/bin/sh' \
+      'if [ "$(getconf LONG_BIT)" = 32 ]; then exec setarch linux32 "$@"; fi' \
+      'exec "$@"' > /usr/local/bin/native-arch \
+ && chmod 755 /usr/local/bin/native-arch
+SHELL ["/usr/local/bin/native-arch", "/bin/sh", "-c"]
+
 # Host toolchain to bootstrap depends (it builds its own autotools, cmake,
 # meson, ninja, pkg-config, python3, swig, ...), plus the X11/GL development
 # files: depends does not build them, its linux-system-x11-libs and
@@ -94,8 +106,8 @@ RUN cd /tmp/xbmc \
 # below is explicit, so nothing wayland/gbm is built, and the Kodi stage sets
 # CORE_PLATFORM_NAME=x11. VAAPI/VDPAU are off in Kodi, so ffmpeg does not need
 # them either (on x86 they are depends' ffmpeg default).
-# --build too: an armv7 container on an arm64 host reports aarch64 to
-# config.guess, and depends would then think it is cross compiling.
+# --build too, so depends never thinks it is cross compiling (see the
+# native-arch wrapper above).
 RUN cd /tmp/xbmc/tools/depends \
  && ./bootstrap \
  && ./configure \
