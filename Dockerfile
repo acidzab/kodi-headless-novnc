@@ -124,7 +124,11 @@ RUN cd /tmp/xbmc/tools/depends \
 
 # Native tools, all of them as in tools/buildsteps/linux/make-native-depends.
 # Like Jenkins, a serial retry gets past the rare parallel race.
+# armv7: OpenSSL's ./config adds -march=armv7-a, which on Ubuntu's armhf gcc
+# (FPU taken from -march, armv7-a+fp) leaves no FPU for -mfloat-abi=hard; an
+# explicit -mfpu with armhf's baseline FPU keeps that combination valid.
 RUN cd /tmp/xbmc/tools/depends \
+ && if [ "$(getconf LONG_BIT)" = 32 ]; then export CC="gcc -mfpu=vfpv3-d16"; fi \
  && (make -j $(nproc) -C native || make -C native)
 
 # Target libraries of depends' own linux list (tools/depends/target/Makefile)
@@ -144,11 +148,12 @@ RUN cd /tmp/xbmc/tools/depends \
 # What Kodi's cmake would otherwise build itself with ExternalProject
 # (ENABLE_INTERNAL_*), Jenkins included. Their depends Makefiles have no
 # dependency rules in target/Makefile, so they are built one by one, in an
-# order that has each library after the ones it needs.
+# order that has each library after the ones it needs (depends' libdvdread
+# is always built with -Dlibdvdcss=enabled, hence libdvdcss).
 RUN cd /tmp/xbmc/tools/depends \
  && for t in brotli nghttp2 curl crossguid fmt spdlog flatbuffers nlohmann_json \
              pcre2 exiv2 libass liblzo2 libmicrohttpd libnfs mariadb udfread \
-             libdvdread libdvdnav libxslt utfcpp taglib tinyxml2; do \
+             libdvdcss libdvdread libdvdnav libxslt utfcpp taglib tinyxml2; do \
       make -j $(nproc) -C target/${t} || exit 1; \
     done
 
