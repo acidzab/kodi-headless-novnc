@@ -173,6 +173,17 @@ ARG CFLAGS=
 ARG CXXFLAGS=
 ARG WITH_CPU=
 
+# Mesa's EGL headers for Kodi itself (not needed by depends, so kept out of
+# the depends stage and its cache): libegl-dev is only glvnd's egl.h/eglext.h,
+# and without Mesa's EGL/eglext_angle.h the configure leaves HAVE_EGLEXTANGLE
+# off and windowing/X11/GLContextEGL.h falls back to EGL/eglextchromium.h,
+# which Mesa no longer ships.
+ARG DEBIAN_FRONTEND="noninteractive"
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends \
+    libegl1-mesa-dev \
+  && rm -rf /var/lib/apt/lists/*
+
 # Kodi-only patches (none of depends/ or ffmpeg/), one at a time, in name order.
 COPY patches/ /patches/
 RUN cd /tmp/xbmc \
