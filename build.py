@@ -6,7 +6,7 @@ import shlex
 BASE_IMAGE = 'ubuntu:26.04'
 EASY_NOVNC_IMAGE = 'fhriley/easy-novnc:1.6.0'
 IMAGE_NAME = 'fhriley/kodi-headless-novnc'
-PLATFORMS = ['linux/amd64', 'linux/arm64', 'linux/arm/v7']
+PLATFORMS = ['linux/amd64', 'linux/arm64']
 CACHE = f'type=registry,ref={IMAGE_NAME}:'
 BUILDX = 'docker buildx build {build_args} --platform {platforms} {tags} --cache-to type=inline,mode=max {push} {load} {no_cache} .'
 PYTHON_VERSION = '3.14'

@@ -91,8 +91,8 @@ services:
 
 | Tag      | Codename | Architecture         |
 |----------|----------|----------------------|
-| `latest` | Piers    | amd64, armv7, arm64  |
-| `Piers`  | Piers    | amd64, armv7, arm64  |
+| `latest` | Piers    | amd64, arm64         |
+| `Piers`  | Piers    | amd64, arm64         |
 
 It is **strongly** recommended that you use the codename tag rather than `latest`. Docker will automatically pull the correct architecture for your platform.
 

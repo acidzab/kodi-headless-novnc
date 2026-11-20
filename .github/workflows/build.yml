@@ -49,15 +49,6 @@ jobs:
         name: Checkout
         uses: actions/checkout@v7
 
-      # GitHub's arm64 runners do not document 32-bit (AArch32) support and some
-      # hosts cannot run linux/arm/v7 containers ("exec format error"). With the
-      # default platforms=all, binfmt only installs emulators for architectures
-      # the host cannot run natively, so a host with AArch32 still builds natively.
-      -
-        name: Set up QEMU (fallback for armv7)
-        if: inputs.platform == 'linux/arm/v7'
-        uses: docker/setup-qemu-action@v4
-
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
