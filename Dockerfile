@@ -181,12 +181,19 @@ RUN cd /tmp/xbmc \
       git apply --ignore-whitespace "$p" || exit 1; \
     done
 
+# depends' linux-system-gl-libs links egl/gl/glu/gbm.pc into the prefix but
+# not glx.pc (libglx-dev, pulled in by libgl-dev), and Kodi's FindGLX only
+# looks for it with pkg-config.
+RUN P=$(ls -d /opt/kodi-deps/*-release) \
+ && ln -sf /usr/lib/$(gcc -dumpmachine)/pkgconfig/glx.pc ${P}/lib/pkgconfig/glx.pc
+
 # cmakebuildsys runs the native cmake with depends' Toolchain.cmake
 # (KODI_DEPENDSBUILD): libraries, pkg-config and the static Python and its
-# dependencies all come from the prefix. USE_INTERNAL_LIBS=OFF turns every
-# ENABLE_INTERNAL_* dependent_option off, so nothing is rebuilt here;
-# CROSSGUID and FFMPEG are plain options and are turned off explicitly
-# (cmakebuildsys passes ENABLE_INTERNAL_CROSSGUID=ON before the extra args).
+# dependencies all come from the prefix. Every ENABLE_INTERNAL_* is turned off
+# one by one: USE_INTERNAL_LIBS=OFF is not enough, linux/ArchSetup.cmake sets
+# it back to ON in a depends build, and with an internal option ON the Find
+# modules always rebuild on Linux. cmakebuildsys passes
+# ENABLE_INTERNAL_CROSSGUID=ON before the extra args, the later OFF wins.
 RUN make -C /tmp/xbmc/tools/depends/target/cmakebuildsys \
       BUILD_DIR=/tmp/xbmc/build \
       CMAKE_EXTRA_ARGUMENTS="${WITH_CPU} \
@@ -194,9 +201,32 @@ RUN make -C /tmp/xbmc/tools/depends/target/cmakebuildsys \
         -DCMAKE_INSTALL_LIBDIR=/usr/lib \
         -DCORE_PLATFORM_NAME=x11 \
         -DAPP_RENDER_SYSTEM=gl \
-        -DUSE_INTERNAL_LIBS=OFF \
+        -DENABLE_INTERNAL_ASS=OFF \
+        -DENABLE_INTERNAL_BLURAY=OFF \
+        -DENABLE_INTERNAL_CEC=OFF \
         -DENABLE_INTERNAL_CROSSGUID=OFF \
+        -DENABLE_INTERNAL_CURL=OFF \
+        -DENABLE_INTERNAL_DAV1D=OFF \
+        -DENABLE_INTERNAL_EXIV2=OFF \
         -DENABLE_INTERNAL_FFMPEG=OFF \
+        -DENABLE_INTERNAL_FLATBUFFERS=OFF \
+        -DENABLE_INTERNAL_FMT=OFF \
+        -DENABLE_INTERNAL_FSTRCMP=OFF \
+        -DENABLE_INTERNAL_GTEST=OFF \
+        -DENABLE_INTERNAL_LCMS2=OFF \
+        -DENABLE_INTERNAL_LIBDVD=OFF \
+        -DENABLE_INTERNAL_LIBMICROHTTPD=OFF \
+        -DENABLE_INTERNAL_LZO2=OFF \
+        -DENABLE_INTERNAL_MARIADBCLIENT=OFF \
+        -DENABLE_INTERNAL_NFS=OFF \
+        -DENABLE_INTERNAL_NLOHMANNJSON=OFF \
+        -DENABLE_INTERNAL_PCRE2=OFF \
+        -DENABLE_INTERNAL_SPDLOG=OFF \
+        -DENABLE_INTERNAL_SWIG=OFF \
+        -DENABLE_INTERNAL_TAGLIB=OFF \
+        -DENABLE_INTERNAL_TINYXML2=OFF \
+        -DENABLE_INTERNAL_UDFREAD=OFF \
+        -DENABLE_INTERNAL_XSLT=OFF \
         -DENABLE_AIRTUNES=OFF \
         -DENABLE_ALSA=ON \
         -DENABLE_AVAHI=OFF \
