@@ -9,7 +9,6 @@ FROM $EASY_NOVNC_IMAGE AS easy-novnc
 # Kodi stage only compiles Kodi. Layers go from the least to the most often
 # changed, so a patch only rebuilds what comes after it:
 #   patches/depends/*.patch  version bumps of depends  -> everything
-#   patches/ffmpeg/*.patch   ffmpeg only               -> ffmpeg + Kodi
 #   patches/*.patch          Kodi only                 -> Kodi
 # Layout: ${DEPENDS_PREFIX}/<triplet>-release (target libs, static) and
 # ${DEPENDS_PREFIX}/<triplet>-native (build tools).
@@ -102,8 +101,8 @@ RUN cd /tmp/xbmc/tools/depends \
 # Target libraries of depends' own linux list (tools/depends/target/Makefile)
 # that this build uses; their order comes from the Makefile's dependency rules.
 # Left out: dbus, libinput/libevdev/mtdev/libudev, libusb, libshairplay,
-# pipewire, libcdio, libva (features disabled in Kodi), wayland/gbm, and
-# ffmpeg, which has its own layer.
+# pipewire, libcdio, libva (features disabled in Kodi), wayland/gbm; ffmpeg
+# is built with the libraries below.
 RUN cd /tmp/xbmc/tools/depends \
  && T="linux-system-x11-libs linux-system-gl-libs \
        alsa-lib bzip2 dav1d expat fontconfig freetype2 freetype2-noharfbuzz \
@@ -117,11 +116,14 @@ RUN cd /tmp/xbmc/tools/depends \
 # (ENABLE_INTERNAL_*), Jenkins included. Their depends Makefiles have no
 # dependency rules in target/Makefile, so they are built one by one, in an
 # order that has each library after the ones it needs (depends' libdvdread
-# is always built with -Dlibdvdcss=enabled, hence libdvdcss).
+# is always built with -Dlibdvdcss=enabled, hence libdvdcss). ffmpeg is here
+# too: built from its own directory, target/Makefile does not pull libva in
+# on x86.
 RUN cd /tmp/xbmc/tools/depends \
  && for t in brotli nghttp2 curl crossguid fmt spdlog flatbuffers nlohmann_json \
              pcre2 exiv2 libass liblzo2 libmicrohttpd libnfs mariadb udfread \
-             libdvdcss libdvdread libdvdnav libxslt utfcpp taglib tinyxml2; do \
+             libdvdcss libdvdread libdvdnav libxslt utfcpp taglib tinyxml2 \
+             ffmpeg; do \
       make -j $(nproc) -C target/${t} || exit 1; \
     done
 
@@ -140,15 +142,6 @@ RUN PYTHON_VERSION=$(sed -n 's/^VERSION=\([0-9]*\.[0-9]*\)\..*/\1/p' /tmp/xbmc/t
  && rm -rf ${L}/test ${L}/idlelib ${L}/turtledemo ${L}/tkinter ${L}/ensurepip \
  && (${N}/bin/python3 -O -m compileall -q ${L} || true) \
  && cp -a ${L} /out/kodi-python/lib/python${PYTHON_VERSION}
-
-# ffmpeg last: its patches change more often than the rest. Built from its
-# own directory, so target/Makefile does not pull libva in on x86.
-COPY patches/ffmpeg/ /patches/ffmpeg/
-RUN cd /tmp/xbmc \
- && for p in /patches/ffmpeg/*.patch; do \
-      git apply --ignore-whitespace "$p" || exit 1; \
-    done \
- && make -j $(nproc) -C tools/depends/target/ffmpeg
 
 # ============================================================================
 # Kodi itself, against the depends prefix (tools/buildsteps/linux/
@@ -171,7 +164,7 @@ RUN apt-get update -y \
     libegl1-mesa-dev \
   && rm -rf /var/lib/apt/lists/*
 
-# Kodi-only patches (none of depends/ or ffmpeg/), one at a time, in name order.
+# Kodi-only patches (not the ones in depends/), one at a time, in name order.
 COPY patches/ /patches/
 RUN cd /tmp/xbmc \
  && for p in /patches/*.patch; do \
