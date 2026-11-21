@@ -255,6 +255,23 @@ RUN make -C /tmp/xbmc/tools/depends/target/cmakebuildsys \
 RUN (make -j $(nproc) -C /tmp/xbmc/build || make -C /tmp/xbmc/build) \
  && make -C /tmp/xbmc/build DESTDIR=/tmp/kodi-build install
 
+# Slim down what the runtime image copies (own layer, so it never re-runs the
+# Kodi build above):
+# - strip every ELF file: kodi-x11 statically links all of depends' libraries
+#   together with their symbol tables, unlike the stripped .so of a distro;
+#   same for Pillow's/PyCryptodome's extension modules
+# - drop what is only for building binary addons against this Kodi (headers,
+#   cmake helpers, python stubs)
+RUN rm -rf /tmp/kodi-build/usr/include \
+           /tmp/kodi-build/usr/lib/kodi/cmake \
+           /tmp/kodi-build/usr/share/kodi/cmake \
+           /tmp/kodi-build/usr/share/kodi/python-stubs \
+ && find /tmp/kodi-build/usr/lib /out/kodi-python -type f | while read -r f; do \
+      if [ "$(head -c 4 "$f" | tail -c 3)" = "ELF" ]; then \
+        strip --strip-unneeded "$f" || exit 1; \
+      fi; \
+    done
+
 # Install kodi-send and xbmcclient
 RUN install -Dm755 \
 	/tmp/xbmc/tools/EventClients/Clients/KodiSend/kodi-send.py \
@@ -275,6 +292,9 @@ ARG DEBIAN_FRONTEND="noninteractive"
 # resolve to the packages below); X11/GL always come from the system.
 # fontconfig-config: depends' fontconfig looks for its config under the depends
 # prefix, so supervisord.conf points FONTCONFIG_FILE at /etc/fonts.
+# No samba-common-bin: it was there for the distro's libsmbclient, the static
+# one from depends never reads /etc/samba (Kodi writes its own smb.conf under
+# ~/.kodi/.smb).
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
     alsa-base \
@@ -287,7 +307,6 @@ RUN apt-get update -y \
     libegl1 \
     libgl1 \
     libxrandr2 \
-    samba-common-bin \
     supervisor \
     tigervnc-standalone-server \
     tigervnc-tools \
@@ -297,8 +316,9 @@ RUN apt-get update -y \
 
 # Python stdlib for Kodi's embedded (static) interpreter. It lives outside
 # /usr/lib so it never mixes with the system Python used by supervisor;
-# supervisord.conf points PYTHONHOME of the kodi process here.
-COPY --from=depends /out/kodi-python /opt/kodi-python
+# supervisord.conf points PYTHONHOME of the kodi process here. Taken from the
+# build stage, where its extension modules got stripped.
+COPY --from=build /out/kodi-python /opt/kodi-python
 
 # Copy Kodi from build stage
 COPY --from=build /tmp/kodi-build/usr/ /usr/
